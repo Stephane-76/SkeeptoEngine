@@ -1,9 +1,10 @@
 # wasm SK_COMPIL: -DSK_COMPIL_MODE=... from the superbuild, or SK_COMPIL in the environment.
+# Default RELEASE (matches top-level CMakeLists.txt / README).
 if(NOT DEFINED SK_COMPIL_MODE OR SK_COMPIL_MODE STREQUAL "")
 	if(DEFINED ENV{SK_COMPIL} AND NOT "$ENV{SK_COMPIL}" STREQUAL "")
 		set(SK_COMPIL_MODE "$ENV{SK_COMPIL}")
 	else()
-		set(SK_COMPIL_MODE "DEBUG")
+		set(SK_COMPIL_MODE "RELEASE")
 	endif()
 endif()
 set(SK_COMPIL_MODE "${SK_COMPIL_MODE}" CACHE STRING "wasm build mode: DEBUG or RELEASE" FORCE)

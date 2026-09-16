@@ -77,14 +77,16 @@ option(SK_FETCH_THIRD_PARTY "Clone missing third-party repos into third-party/" 
 option(SK_BUILD_THIRD_PARTY "Compile cppunit / pugixml / libzip when needed" ON)
 option(SK_FORCE_THIRD_PARTY "Rebuild third-party even if artifacts already exist" OFF)
 
+# Defaults when unset / empty: RELEASE wasm, Memory64 OFF (wasm32).
+# Write CACHE with FORCE so ExternalProject does not inherit an empty string.
 set(SK_COMPIL_MODE "$ENV{SK_COMPIL}" CACHE STRING "wasm: DEBUG or RELEASE (same as SK_COMPIL)")
 if(SK_COMPIL_MODE STREQUAL "")
-	set(SK_COMPIL_MODE "RELEASE")
+	set(SK_COMPIL_MODE "RELEASE" CACHE STRING "wasm: DEBUG or RELEASE (same as SK_COMPIL)" FORCE)
 endif()
 
 set(SK_MEMORY64 "$ENV{SK_64Bit}" CACHE STRING "wasm Memory64: ON or OFF")
 if(SK_MEMORY64 STREQUAL "")
-	set(SK_MEMORY64 "OFF")
+	set(SK_MEMORY64 "OFF" CACHE STRING "wasm Memory64: ON or OFF" FORCE)
 endif()
 string(TOUPPER "${SK_MEMORY64}" _SK_MEMORY64_UP)
 

@@ -91,8 +91,8 @@ the superbuild uses the sibling `../skeepto` when that folder exists.
 `-DSK_SKEEPTO_DIR=NONE` skips the copy (target `skeepto-sync` is omitted).
 
 Release vs debug wasm: `-DSK_COMPIL_MODE=RELEASE` (default) or `DEBUG`.
-64-bit Memory64: `-DSK_MEMORY64=ON` (artifacts go to `wasm64/`; Node module
-is skipped, same as the old `compil2Wasm.sh`).
+64-bit Memory64: `-DSK_MEMORY64=OFF` (default, wasm32) or `ON` (artifacts go
+to `wasm64/`; the Node module is skipped).
 
 Useful options:
 
