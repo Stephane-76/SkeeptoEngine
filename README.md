@@ -4,14 +4,92 @@
 [![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)](https://isocpp.org/)
 [![CMake](https://img.shields.io/badge/build-CMake-064F8C?logo=cmake&logoColor=white)](https://cmake.org/)
 [![WebAssembly](https://img.shields.io/badge/target-WASM-654FF0?logo=webassembly&logoColor=white)](https://webassembly.org/)
+[![Functions](https://img.shields.io/badge/worksheet%20functions-344-2ea44f)](#344-worksheet-functions)
 
-**C++20 spreadsheet calculation engine** used by [Skeepto](https://github.com/Stephane-76/Skeepto).
-The same sources compile natively and to **WebAssembly** (browser + Node.js).
+**A C++20 spreadsheet engine built to outrun Excel.** Same sources, native or
+**WebAssembly** — browser and Node.js. Used by [Skeepto](https://github.com/Stephane-76/Skeepto).
+
+Excel is a desktop product. This is a **calculation core**: sparse cells,
+index-based rows and columns, shared formulas, incremental recalc. Inserting
+or deleting a row does not rewrite every address. Large workbooks stay
+responsive where Excel stalls.
+
+Drive it with a **clear API** (`tApi` in C++, `UISpreadSheet` in JavaScript) —
+workbooks, cells, formulas, format, undo, JSON. No COM, no VBA, no opaque
+add-in. The same 344 worksheet functions run in the grid, in a headless
+server, and under an agent.
 
 This repository is the engine only: libraries, unit tests, the WASM React
 binding (`SkReactSpreadSheet`), the Excel converter (`SkExcel`), and the
 spreadsheet stress tool (`SkPressureSp`). The UI and server live in the
 Skeepto application repo.
+
+## Why this engine
+
+| | What you get |
+| --- | --- |
+| **Faster than Excel** | Native C++20, not a JavaScript grid. Recalc is a **Kahn** work-queue on the dirty graph (not a full-sheet sweep). Cycles go through **Tarjan SCC** then **Gauss–Seidel**. Shared formulas are pooled. Insert/delete is index-based. Same binary in the browser (WASM) and on the server. |
+| **344 worksheet functions** | Math, stats, text, logical, lookup, date, financial, and **dynamic arrays** (`FILTER`, `SORT`, `UNIQUE`, `MAP`, `REDUCE`, `SCAN`, `XLOOKUP`, `LET`, …). Excel-compatible names. |
+| **Clear API** | One class to create a workbook, write `A1`, compile `=SUM(A1:A2)`, read the result, format, undo, serialize to JSON. Same surface in C++ and in JavaScript. |
+
+```javascript
+const ss = new SpreadSheet.UISpreadSheet();
+ss.NewWorkBook("demo");
+ss.Value("A1", "10", "Sheet1");
+ss.Value("A2", "20", "Sheet1");
+ss.Value("B1", "=SUM(A1:A2)", "Sheet1");
+ss.GetValue("B1", "Sheet1");   // "30"
+```
+
+C++ uses the same idea through `tApi` (`CellValue`, sheets, named ranges,
+recalc). WASM exposes ~150 methods on `UISpreadSheet`: cells, fill series,
+rows/columns, copy/paste, CSS format, conditional format, named formulas,
+floating objects, viewport JSON, cooperative recalc.
+
+## 344 worksheet functions
+
+Registered in `Libraries/SkSpreadSheet` (Excel aliases counted separately,
+e.g. `STDEV` / `STDEV_S`):
+
+| Family | Count | Highlights |
+|--------|------:|------------|
+| Math & statistics | 166 | `SUM`, `AVERAGE`, `LINEST`, `FORECAST`, distributions, engineering bases |
+| Text | 36 | `TEXTJOIN`, `TEXTSPLIT`, `REGEXEXTRACT`, `REGEXREPLACE` |
+| Logical | 35 | `IF`, `IFS`, `SWITCH`, `LET`, `LAMBDA` helpers (`ISOMITTED`) |
+| Dynamic arrays | 29 | `FILTER`, `SORT`, `UNIQUE`, `MAP`, `REDUCE`, `SCAN`, `BYROW`, `BYCOL` |
+| Lookup / sheet | 29 | `XLOOKUP`, `XMATCH`, `INDEX`, `INDIRECT`, `OFFSET` |
+| Date & time | 25 | `NETWORKDAYS_INTL`, `WORKDAY_INTL`, `DATEDIF` |
+| Financial | 24 | `PMT`, `XIRR`, `XNPV`, `CUMIPMT` |
+| **Total** | **344** | |
+
+Modern Excel is in there: dynamic arrays, `XLOOKUP`, `LET`, higher-order
+`MAP` / `REDUCE` / `SCAN`. Import `.xlsx` with `SkExcel`; formulas keep their
+names.
+
+## How calculation is optimized
+
+Formulas compile once (Lemon **LALR(1)** parser → **RPN** opcodes) and are
+**interned**: identical formulas share one `tSharedFormula`. Recalc never
+walks the whole sheet. It builds a sparse **calculation path** (`tPath`) of
+dirty cells and their dependents, each node carrying an in-degree
+(`m_NbDepend`).
+
+| Step | Algorithm | What it does |
+|------|-----------|----------------|
+| Ready cells | **Kahn’s algorithm** (work-queue topological sort) | Seed every path with in-degree 0, `Resolve`, decrement dependents. Each cell runs once. Linear in the dirty graph — not a restart-from-head scan. |
+| Ranges | Range recovery + implicit intersection | Formulas that cover a written range are pulled onto the path. Single-column refs (`SUMIF` on `G:G`) stay O(1) edges, not a full-column expansion. |
+| Blocked leftover | Local adjacency from `VectorRef`, then **Kahn** again | When the queue empties but cells remain (range-covered cycles, `SUMIF` columns), rebuild a small graph and try a full topological order. |
+| True cycles | **Tarjan’s algorithm** (strongly connected components) | SCCs of the leftover graph. The **condensation DAG** is sorted with Kahn. Acyclic components evaluate once. |
+| Cyclic SCC | **Gauss–Seidel** iteration | In-place re-eval of the component until values stabilize (ε = 1e−12, max 40 passes). Divergence (`|x| > 1e15` or non-finite) → `#RECURSIVE`. |
+| UI / WASM | Cooperative **time-sliced** `ReduceStep` | Same Kahn + blocked-subgraph path, yielded every few milliseconds so the grid stays interactive. |
+| Named formulas | Per-pass eval cache | A named formula is computed once per caller cell in a recalc, not on every reference. |
+
+Spill / dynamic arrays (`FILTER`, `UNIQUE`, `MAP`, …) wait on the origin cell
+before dependents of the spilled range run. Financial solvers (`RATE`,
+`IRR`, `XIRR`) use **Newton–Raphson** inside the function, not in the graph
+scheduler.
+
+The graph lives in `Libraries/SkSpreadSheet/source/SkCalculationPath.cpp`.
 
 ## Layout
 
