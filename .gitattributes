@@ -1,0 +1,2 @@
+# Auto detect text files and keep LF in the working tree (overrides core.autocrlf)
+* text=auto eol=lf

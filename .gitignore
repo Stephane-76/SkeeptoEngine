@@ -1,0 +1,77 @@
+# Prerequisites
+*.d
+
+# Compiled objects / libraries / executables
+*.slo
+*.lo
+*.o
+*.obj
+*.gch
+*.pch
+*.so
+*.dylib
+*.dll
+*.lai
+*.la
+*.a
+*.lib
+*.exe
+*.out
+*.app
+*.DS_Store
+*.db
+*.pbxproj
+
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Superbuild (one -B dir per generator)
+/build/
+/build-unix/
+/build-xcode/
+/build-wasm/
+/build-wasm64/
+/build-windows/
+
+# Per-platform artifacts and in-tree child configure dirs
+# (no trailing slash: also ignore a stray file of the same name)
+/unix
+/xcode
+/windows
+/wasm
+/wasm64
+
+Libraries/*/unix/
+Libraries/*/xcode/
+Libraries/*/windows/
+Libraries/*/wasm/
+Libraries/*/wasm64/
+Libraries_test/*/unix/
+Libraries_test/*/xcode/
+Libraries_test/*/windows/
+Libraries_test/*/wasm/
+Libraries_test/*/wasm64/
+SkExcel/unix/
+SkExcel/xcode/
+SkExcel/windows/
+SkExcel/wasm/
+SkExcel/wasm_lib/
+SkExcel/wasm64/
+SkExcel/wasm64_lib/
+SkReactSpreadSheet/unix/
+SkReactSpreadSheet/xcode/
+SkReactSpreadSheet/windows/
+SkReactSpreadSheet/wasm/
+SkReactSpreadSheet/wasm_node/
+SkReactSpreadSheet/wasm64/
+SkReactSpreadSheet/wasm64_node/
+SkPressureSp/unix/
+SkPressureSp/xcode/
+SkPressureSp/windows/
+SkPressureSp/wasm/
+SkPressureSp/wasm64/
+
+# Fetched and compiled by CMake (see cmake/SkThirdParty.cmake)
+/third-party/

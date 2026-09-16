@@ -1,0 +1,26 @@
+name: CMake
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  unix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install native deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libzip-dev
+
+      - name: Configure
+        run: cmake -B build-unix -DSK_PLATFORM=unix
+
+      - name: Build
+        run: cmake --build build-unix --parallel
+
+      - name: Test
+        run: cmake --build build-unix --target run-tests
