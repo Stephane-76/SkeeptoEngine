@@ -97,6 +97,7 @@ The graph lives in `Libraries/SkSpreadSheet/source/SkCalculationPath.cpp`.
 skeepto-engine/
 ├── CMakeLists.txt              # superbuild (configure once, build everything)
 ├── cmake/                      # Emscripten, third-party, wasm flags
+├── File/                       # workbook fixtures for a complete native test run
 ├── Libraries/
 │   ├── SkRoot/                 # variants, dates, files, containers
 │   ├── SkFormat/               # number/date formats, CSS, styles
@@ -134,6 +135,11 @@ cmake --build build-unix --target run-tests
 ```
 
 Libraries and binaries land in `unix/lib` and `unix/bin`.
+
+Workbook fixtures for a complete native test run live in `File/`
+(`Budget.sker`, `Budget-familial.sker`, `AmortBis.sker`, `AmortBis.json`,
+`PretBis.sker`, `PretBis.json`, `Calendar.sker`, and
+`Calendrier sur 12 mois1.sker`). Override with `SKER_EXCEL_TEST_DIR`.
 
 ### Xcode
 

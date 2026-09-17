@@ -293,7 +293,11 @@ void TestSkFormatWeb::TestSkWebPressure() {
 
 void TestSkFormatWeb::TestSkWebDemo() {
     // Just xcode
+#ifdef SKER_FILE_DIR
+    tString wFileName = tString(SKER_FILE_DIR) + "/Budget.sker";
+#else
     tString wFileName="/Users/stephaneallez/Projects/Excel/Budget.sker";
+#endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {
         tString wJson = wFile.LoadString();

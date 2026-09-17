@@ -4,7 +4,11 @@
 
 #ifdef TestMultiUser
 
+#ifdef SKER_FILE_DIR
+const tString CstPathBudget = tString(SKER_FILE_DIR) + "/Budget-familial.sker";
+#else
 const tString CstPathBudget="/Users/stephaneallez/Projects/Excel/Budget-familial.sker";
+#endif
 
 namespace {
     const tString kBudgetCellFormatSuffix =
@@ -453,7 +457,7 @@ void TestSkInterface::LoadDocument(tInterfaceWeb* sInterfaceWeb,rapidjson::Docum
 }
 
 void TestSkInterface::TestSkInterfaceBudget() {
-    tString wFileName="/Users/stephaneallez/Projects/Excel/Budget-familial.sker";
+    tString wFileName = CstPathBudget;
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {
         tString wJson = wFile.LoadString();

@@ -42,13 +42,15 @@ set(SK_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 cmake_path(GET SK_DIRECTORY PARENT_PATH SK_PARENT)
 cmake_path(GET SK_PARENT PARENT_PATH SK_ROOT)
 
-# Emscripten: preload Amort.sker for TestSkExcel::LoadAmort (host path -> MEMFS /home/web_user/Projects/Excel/)
-# Override with -DSKER_WASM_PRELOAD_EXCEL_DIR=... or leave empty to disable.
+# Native + WASM fixtures live in <repo>/File/. WASM maps that folder into MEMFS
+# /home/web_user/Projects/Excel/ (ExcelTestDataDir on emscripten). A cached path to
+# ~/Projects/Excel is ignored when File/ exists (that tree has names with spaces
+# that break an unquoted --preload-file glob). Override only if File/ is missing.
 set(_SKER_EXCEL_DEFAULT "")
-if(DEFINED ENV{HOME} AND EXISTS "$ENV{HOME}/Projects/Excel")
-	set(_SKER_EXCEL_DEFAULT "$ENV{HOME}/Projects/Excel")
+if(EXISTS "${SK_ROOT}/File/Budget.sker")
+	set(_SKER_EXCEL_DEFAULT "${SK_ROOT}/File")
 endif()
-set(SKER_WASM_PRELOAD_EXCEL_DIR "${_SKER_EXCEL_DEFAULT}" CACHE PATH "Folder containing Amort.sker; WASM link adds --preload-file into MEMFS for round-trip test")
+set(SKER_WASM_PRELOAD_EXCEL_DIR "${_SKER_EXCEL_DEFAULT}" CACHE PATH "Folder of .sker/.json fixtures; WASM link adds --preload-file into MEMFS")
 
 message("Root->" ${SK_ROOT})
 message("Platform->" ${SK_PLATFORM})
@@ -110,6 +112,12 @@ endif()
 if(SK_SPREADSHEET_TEST_MULTI_USER)
 	target_compile_definitions(${CURRENT_PROJECT} PRIVATE TestMultiUser)
 	message(STATUS "${CURRENT_PROJECT}: TestMultiUser enabled")
+endif()
+
+# Native tests open workbooks from <repo>/File/ (SKER_EXCEL_TEST_DIR still wins at runtime).
+if(EXISTS "${SK_ROOT}/File")
+	file(TO_CMAKE_PATH "${SK_ROOT}/File" _SKER_FILE_DIR)
+	target_compile_definitions(${CURRENT_PROJECT} PRIVATE "SKER_FILE_DIR=\"${_SKER_FILE_DIR}\"")
 endif()
 
 if(APPLE)
@@ -266,37 +274,22 @@ endif()
 
 target_link_libraries(${CURRENT_PROJECT} ${PROJECT_LIBRARY} )
 
-# Emscripten: --preload-file must reach the final emcc link. Appending to LINK_FLAGS matches the other
-# wasm flags above; target_link_options is easy to miss with some generators. Also, an old CMake cache
-# may still store SKER_WASM_PRELOAD_EXCEL_DIR as empty — fall back to $ENV{HOME}/Projects/Excel when Amort.sker exists.
+# Emscripten: preload the whole fixtures directory (one mapping, no glob). File names
+# with spaces (Calendrier sur 12 mois1.sker) stay inside the packager; they must not
+# appear as separate emcc argv tokens. Prefer <repo>/File over a stale cache that
+# still points at ~/Projects/Excel (Book 12.sker used to split --preload-file).
 if(${SK_PLATFORM} STREQUAL wasm)
-	set(_SKER_PRELOAD_EXCEL_DIR "${SKER_WASM_PRELOAD_EXCEL_DIR}")
-	if(_SKER_PRELOAD_EXCEL_DIR STREQUAL "")
-		set(_SKER_FALLBACK "$ENV{HOME}/Projects/Excel")
-		if(EXISTS "${_SKER_FALLBACK}/Amort.sker")
-			set(_SKER_PRELOAD_EXCEL_DIR "${_SKER_FALLBACK}")
-			message(STATUS "SKER_WASM_PRELOAD_EXCEL_DIR was empty in cache; using ${_SKER_PRELOAD_EXCEL_DIR} for Amort.sker preload")
-		endif()
+	set(_SKER_PRELOAD_EXCEL_DIR "")
+	if(EXISTS "${SK_ROOT}/File/Budget.sker")
+		set(_SKER_PRELOAD_EXCEL_DIR "${SK_ROOT}/File")
+	elseif(NOT "${SKER_WASM_PRELOAD_EXCEL_DIR}" STREQUAL "" AND EXISTS "${SKER_WASM_PRELOAD_EXCEL_DIR}")
+		set(_SKER_PRELOAD_EXCEL_DIR "${SKER_WASM_PRELOAD_EXCEL_DIR}")
 	endif()
 	if(NOT _SKER_PRELOAD_EXCEL_DIR STREQUAL "")
-		get_target_property(_sk_test_link_flags ${CURRENT_PROJECT} LINK_FLAGS)
-		if(_sk_test_link_flags STREQUAL "_sk_test_link_flags-NOTFOUND")
-			set(_sk_test_link_flags "")
-		endif()
 		set(_SKER_WASM_PRELOAD_MEMFS "/home/web_user/Projects/Excel")
-		foreach(_SKER_PRELOAD_NAME IN ITEMS Amort.sker Budget.sker)
-			set(_SKER_PRELOAD_HOST "${_SKER_PRELOAD_EXCEL_DIR}/${_SKER_PRELOAD_NAME}")
-			if(EXISTS "${_SKER_PRELOAD_HOST}")
-				set(_sk_test_link_flags
-					"${_sk_test_link_flags} --preload-file ${_SKER_PRELOAD_HOST}@${_SKER_WASM_PRELOAD_MEMFS}/${_SKER_PRELOAD_NAME}")
-				message(STATUS "WASM preload TestSkExcel: ${_SKER_PRELOAD_HOST} -> MEMFS ${_SKER_WASM_PRELOAD_MEMFS}/${_SKER_PRELOAD_NAME}")
-			else()
-				message(STATUS "WASM preload skip (not found): ${_SKER_PRELOAD_HOST}")
-			endif()
-		endforeach()
-		if(NOT _sk_test_link_flags STREQUAL "")
-			set_property(TARGET ${CURRENT_PROJECT} PROPERTY LINK_FLAGS "${_sk_test_link_flags}")
-		endif()
+		target_link_options(${CURRENT_PROJECT} PRIVATE
+			"SHELL:--preload-file \"${_SKER_PRELOAD_EXCEL_DIR}@${_SKER_WASM_PRELOAD_MEMFS}\"")
+		message(STATUS "WASM preload TestSkExcel: ${_SKER_PRELOAD_EXCEL_DIR} -> MEMFS ${_SKER_WASM_PRELOAD_MEMFS}")
 	endif()
 endif()
 

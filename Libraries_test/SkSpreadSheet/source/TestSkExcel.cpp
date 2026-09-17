@@ -25,10 +25,10 @@ using namespace SkFormat;
 
 namespace {
 
-// Directory containing AmortBis.sker / Debug1.sker for Excel round-trip tests.
-// Native: set SKER_EXCEL_TEST_DIR or SKER_DISK_PATH (same idea as Node SkTestSpreadSheet.mjs).
-// Emscripten: no host FS — CMake preloads *.sker from SKER_WASM_PRELOAD_EXCEL_DIR into
-// /home/web_user/Projects/Excel/ (Amort.sker, Budget.sker when present on the host).
+// Directory containing AmortBis.sker / Budget.sker for Excel round-trip tests.
+// Native: SKER_EXCEL_TEST_DIR, then <repo>/File/ (SKER_FILE_DIR), then ~/Projects/Excel.
+// Emscripten: no host FS — CMake preloads *.sker from File/ into
+// /home/web_user/Projects/Excel/.
 tString ExcelTestDataDir() {
     const char* wDir = std::getenv("SKER_EXCEL_TEST_DIR");
     if (wDir != nullptr && wDir[0] != '\0') {
@@ -46,6 +46,17 @@ tString ExcelTestDataDir() {
         if (wPos != tString::npos)
             return wFull.substr(0, wPos + 1);
     }
+#if defined(SKER_FILE_DIR) && !defined(__EMSCRIPTEN__)
+    {
+        tString p(SKER_FILE_DIR);
+        while (!p.empty() && (p.back() == '/' || p.back() == '\\'))
+            p.pop_back();
+        if (!p.empty()) {
+            p += '/';
+            return p;
+        }
+    }
+#endif
     const char* wHome = std::getenv("HOME");
 #if defined(_WIN32) || defined(_WIN64)
     if (wHome == nullptr || wHome[0] == '\0')

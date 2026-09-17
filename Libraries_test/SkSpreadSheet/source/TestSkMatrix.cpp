@@ -27,6 +27,17 @@ tString MatrixTestExcelDataDir() {
 			p += '/';
 		return p;
 	}
+#if defined(SKER_FILE_DIR) && !defined(__EMSCRIPTEN__)
+	{
+		tString p(SKER_FILE_DIR);
+		while (!p.empty() && (p.back() == '/' || p.back() == '\\'))
+			p.pop_back();
+		if (!p.empty()) {
+			p += '/';
+			return p;
+		}
+	}
+#endif
 	const char* wHome = std::getenv("HOME");
 #if defined(_WIN32) || defined(_WIN64)
 	if (wHome == nullptr || wHome[0] == '\0')

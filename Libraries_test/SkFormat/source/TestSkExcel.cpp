@@ -43,7 +43,11 @@ tString TestSkExcel::DebugCell(tString sRef) {
 }
 
 void TestSkExcel::TestSkInterfaceBudget() {
+#ifdef SKER_FILE_DIR
+    tString wFileName = tString(SKER_FILE_DIR) + "/Budget-familial.sker";
+#else
     tString wFileName="/Users/stephaneallez/Projects/Excel/Budget-familial.sker";
+#endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {
         tString wJson = wFile.LoadString();

@@ -86,6 +86,11 @@ if(SK_SPREADSHEET_TEST_MULTI_USER)
 	message(STATUS "${CURRENT_PROJECT}: TestMultiUser enabled")
 endif()
 
+if(EXISTS "${SK_ROOT}/File")
+	file(TO_CMAKE_PATH "${SK_ROOT}/File" _SKER_FILE_DIR)
+	target_compile_definitions(${CURRENT_PROJECT} PRIVATE "SKER_FILE_DIR=\"${_SKER_FILE_DIR}\"")
+endif()
+
 if(APPLE)
 	set_target_properties(${CURRENT_PROJECT} PROPERTIES
 		MACOSX_DEPLOYMENT_TARGET "14.0"

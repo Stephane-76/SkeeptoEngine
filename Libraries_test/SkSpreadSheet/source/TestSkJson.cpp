@@ -141,7 +141,11 @@ void TestSkJson::ReadMultiSheet() {
 
 void TestSkJson::Excel() {
     m_Api = new tApi;
+#ifdef SKER_FILE_DIR
+    tString wFileName = tString(SKER_FILE_DIR) + "/Budget.sker";
+#else
     tString wFileName="/Users/stephaneallez/Projects/Excel/Budget.sker";
+#endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {
         tString wJson = wFile.LoadString();
