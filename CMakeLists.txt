@@ -133,6 +133,16 @@ include("${CMAKE_SOURCE_DIR}/cmake/SkSelectChildGenerator.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/SkEnsureOutput.cmake")
 sk_ensure_output_dir("${CMAKE_SOURCE_DIR}/${SK_OUTPUT_DIR}")
 
+# macOS unix/xcode: refresh CMAKE_OSX_SYSROOT (Xcode updates drop old SDK folders)
+# and FORCE it into ExternalProject child caches (Libraries/*/unix/CMakeCache.txt).
+if(APPLE AND NOT SK_PLATFORM STREQUAL "wasm")
+	include("${CMAKE_SOURCE_DIR}/cmake/SkDarwinSdk.cmake")
+	if(CMAKE_OSX_SYSROOT)
+		list(APPEND SK_CHILD_CMAKE_CACHE_ARGS
+			"-DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}")
+	endif()
+endif()
+
 # --- Common child cmake args -------------------------------------------------
 set(SK_COMMON_CMAKE_ARGS
 	-DSK_PLATFORM=${SK_PLATFORM}
