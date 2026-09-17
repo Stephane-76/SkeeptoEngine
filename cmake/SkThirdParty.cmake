@@ -20,7 +20,15 @@ function(sk_reset_stale_cmake_cache binary_dir expected_source)
 	get_filename_component(_want_bin "${binary_dir}" REALPATH)
 	file(STRINGS "${_cache}" _home_lines REGEX "^CMAKE_HOME_DIRECTORY:")
 	file(STRINGS "${_cache}" _bin_lines REGEX "^CMAKE_CACHEFILE_DIR:")
+	file(STRINGS "${_cache}" _gen_lines REGEX "^CMAKE_GENERATOR:")
 	set(_stale FALSE)
+	if(_gen_lines AND SK_CHILD_GENERATOR)
+		list(GET _gen_lines 0 _gen)
+		string(REGEX REPLACE "^CMAKE_GENERATOR:[^=]*=" "" _have_gen "${_gen}")
+		if(NOT _have_gen STREQUAL SK_CHILD_GENERATOR)
+			set(_stale TRUE)
+		endif()
+	endif()
 	if(_home_lines)
 		list(GET _home_lines 0 _home)
 		string(REGEX REPLACE "^CMAKE_HOME_DIRECTORY:[^=]*=" "" _have_src "${_home}")
@@ -166,6 +174,7 @@ function(sk_tp_cmake target_name source_dir binary_dir)
 		CMAKE_GENERATOR "${SK_CHILD_GENERATOR}"
 		${_gen_plat}
 		CMAKE_ARGS ${A_CMAKE_ARGS}
+		CMAKE_CACHE_ARGS ${SK_CHILD_CMAKE_CACHE_ARGS}
 		BUILD_COMMAND ${_build_cmd}
 		INSTALL_COMMAND ${_install_cmd}
 		DEPENDS ${A_DEPENDS}
@@ -369,6 +378,9 @@ if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "wasm" OR SK_PLATFORM STREQUAL "windo
 			set(_gen_plat CMAKE_GENERATOR_PLATFORM ${SK_CHILD_GENERATOR_PLATFORM})
 		endif()
 
+		sk_reset_stale_cmake_cache("${CMAKE_BINARY_DIR}/tp/zlib" "${_zlib_src}")
+		sk_reset_stale_cmake_cache("${CMAKE_BINARY_DIR}/tp/libzip" "${_libzip_src}")
+
 		ExternalProject_Add(zlib_tp
 			URL "https://zlib.net/fossils/zlib-${SK_ZLIB_VERSION}.tar.gz"
 			DOWNLOAD_EXTRACT_TIMESTAMP TRUE
@@ -379,6 +391,7 @@ if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "wasm" OR SK_PLATFORM STREQUAL "windo
 			CMAKE_GENERATOR "${SK_CHILD_GENERATOR}"
 			${_gen_plat}
 			CMAKE_ARGS ${_z_args}
+			CMAKE_CACHE_ARGS ${SK_CHILD_CMAKE_CACHE_ARGS}
 			BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config Release --parallel
 			INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config Release
 			USES_TERMINAL_DOWNLOAD TRUE
@@ -405,6 +418,7 @@ if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "wasm" OR SK_PLATFORM STREQUAL "windo
 			CMAKE_GENERATOR "${SK_CHILD_GENERATOR}"
 			${_gen_plat}
 			CMAKE_ARGS ${_z_args_libzip}
+			CMAKE_CACHE_ARGS ${SK_CHILD_CMAKE_CACHE_ARGS}
 			BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config Release --parallel
 			INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config Release
 			DEPENDS zlib_tp

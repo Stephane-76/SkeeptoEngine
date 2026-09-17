@@ -115,14 +115,16 @@ if(DEFINED SK_ZLIB)
 	include_directories(${SK_ZLIB}/include)
 endif()
 
-# Fix output directory for Xcode builds
-if(CMAKE_GENERATOR STREQUAL "Xcode")
-    # Use the main xcode directory for both libraries and binaries
-    set(SK_OUTPUT "${ROOT}/${SK_PLATFORM}")
-    set(SK_SEARCH_LIB "${ROOT}/${SK_PLATFORM}/lib")
-else()
-    set(SK_OUTPUT "${ROOT}/${SK_PLATFORM}")
-    set(SK_SEARCH_LIB ${SK_OUTPUT}/lib)
+# Same artifact tree as the other modules (wasm64 via SK_WASM_OUTPUT_SUBDIR).
+set(SK_OUTPUT "${ROOT}/${SK_PLATFORM}")
+if(DEFINED SK_WASM_OUTPUT_SUBDIR AND NOT "${SK_WASM_OUTPUT_SUBDIR}" STREQUAL "")
+	set(SK_OUTPUT "${ROOT}/${SK_WASM_OUTPUT_SUBDIR}")
+endif()
+set(SK_SEARCH_LIB "${SK_OUTPUT}/lib")
+
+# Shared wasm SK_COMPIL_MODE / SK_MEMORY64 (must match linked libSk*.a).
+if(SK_PLATFORM STREQUAL "wasm")
+	include("${ROOT}/cmake/SkWasmCompil.cmake")
 endif()
 
 ## Pour Visual studio et Xcode les repertoires Debug et Release sont traités automatiquement
@@ -373,6 +375,10 @@ if(EMSCRIPTEN)
 		"$<$<BOOL:${SKEXCEL_WASM_LIB}>:SHELL:-sEXPORTED_FUNCTIONS=_skexcel_convert,_main,_malloc,_free>"
 		"$<$<BOOL:${SKEXCEL_WASM_LIB}>:SHELL:-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,callMain,FS>"
 	)
+	# Memory64 ABI must match the linked libSk*.a (flags come from SkWasmCompil.cmake).
+	if(SK_WASM_MEMORY64)
+		target_link_options(${CURRENT_PROJECT} PRIVATE "SHELL:${SK_WASM_MEM64_LINK_FLAGS}")
+	endif()
 	# In-process variant is emitted as SkExcelLib.js so it coexists with the auto-run CLI SkExcel.js.
 	if(SKEXCEL_WASM_LIB)
 		set_target_properties(${CURRENT_PROJECT} PROPERTIES OUTPUT_NAME "SkExcelLib")
@@ -425,7 +431,7 @@ endif()
 ## Specifique au compilateur =================================================
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	# Set Runtime library
-	if ($ENV{SKLINK} STREQUAL "DYNAMIC") 
+	if ("$ENV{SKLINK}" STREQUAL "DYNAMIC") 
 		message("<-LINK DYNAMIC->" )
 		if (CMAKE_BUILD_TYPE STREQUAL "Debug")		
 			set(CMAKE_CXX_FLAGS_RELEASE "/MDd")

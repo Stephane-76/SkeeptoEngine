@@ -162,6 +162,19 @@ cmake -B build-wasm -DSK_PLATFORM=wasm
 cmake --build build-wasm --parallel
 ```
 
+On Windows the default CMake generator is Visual Studio, which cannot drive
+Emscripten. The superbuild compiles each module with **Ninja** (from `PATH` or
+the Visual Studio C++ CMake tools). If configure reports that no build program
+was found, install [Ninja](https://ninja-build.org/) (`winget install Ninja-build.Ninja`)
+or the “C++ CMake tools for Windows” workload.
+
+Optional (Ninja for the parent as well, no MSBuild wrapper):
+
+```bat
+cmake -G Ninja -B build-wasm -DSK_PLATFORM=wasm
+cmake --build build-wasm --parallel
+```
+
 That produces **two** `SkReactSpreadSheet` modules (they must not share a CMake
 tree: Node sets `-DSK_NODE` and `ENVIRONMENT=node`):
 
