@@ -18,7 +18,8 @@
 #   cmake --build build-windows --parallel
 #
 # WebAssembly (emsdk on PATH or EMSDK set; SK_COMPIL=DEBUG|RELEASE,
-# SK_MEMORY64=ON for wasm64):
+# SK_MEMORY64=ON for wasm64). On Windows, children use Ninja (Unix Makefiles
+# need `make`, which is not installed by default):
 #   cmake -B build-wasm -DSK_PLATFORM=wasm -DSK_SKEEPTO_DIR=/path/to/skeepto
 #   cmake --build build-wasm --parallel
 # Sibling ../skeepto is used when SK_SKEEPTO_DIR is empty. NONE skips the copy.
@@ -124,7 +125,10 @@ else()
 	set(SK_OUTPUT_DIR "unix")
 endif()
 
-# Artifact tree <repo>/<platform>/{lib,bin}. A stray file of that name (common
+# Windows has no `make` by default: pick Ninja (or mingw32-make) for children.
+include("${CMAKE_SOURCE_DIR}/cmake/SkSelectChildGenerator.cmake")
+
+# Artifact tree <repo>/<platform>/{lib,bin}. A stray file of that name (common)
 # after a zsh paste on case-insensitive APFS) would make ar fail at link time.
 include("${CMAKE_SOURCE_DIR}/cmake/SkEnsureOutput.cmake")
 sk_ensure_output_dir("${CMAKE_SOURCE_DIR}/${SK_OUTPUT_DIR}")
@@ -132,7 +136,6 @@ sk_ensure_output_dir("${CMAKE_SOURCE_DIR}/${SK_OUTPUT_DIR}")
 # --- Common child cmake args -------------------------------------------------
 set(SK_COMMON_CMAKE_ARGS
 	-DSK_PLATFORM=${SK_PLATFORM}
-	-DSK_SPREADSHEET_TEST_MULTI_USER=${SK_SPREADSHEET_TEST_MULTI_USER}
 )
 if(CMAKE_BUILD_TYPE)
 	list(APPEND SK_COMMON_CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
@@ -223,6 +226,7 @@ function(sk_add_module target_name source_dir)
 		CMAKE_GENERATOR "${SK_CHILD_GENERATOR}"
 		${_gen_plat}
 		CMAKE_ARGS ${_cmake_args}
+		CMAKE_CACHE_ARGS ${SK_CHILD_CMAKE_CACHE_ARGS}
 		BUILD_COMMAND ${_build_cmd}
 		# Always run the child cmake --build. ExternalProject stamps ignore .cpp
 		# edits in SOURCE_DIR, so tests/apps would keep a stale binary after a lib
@@ -242,24 +246,27 @@ endfunction()
 # --- Libraries ----------------------------------------------------------------
 sk_add_module(SkRoot        Libraries/SkRoot)
 sk_add_module(SkFormat      Libraries/SkFormat      DEPENDS SkRoot)
-sk_add_module(SkSpreadSheet Libraries/SkSpreadSheet DEPENDS SkRoot SkFormat)
+sk_add_module(SkSpreadSheet Libraries/SkSpreadSheet DEPENDS SkRoot SkFormat
+	EXTRA_ARGS -DSK_SPREADSHEET_TEST_MULTI_USER=${SK_SPREADSHEET_TEST_MULTI_USER})
 
 # --- Tests --------------------------------------------------------------------
 # Tests link the static libs by path (not CMake targets). DEPENDS must cover every
 # .a they pass to the linker, otherwise a parallel build can link a stale archive.
 sk_add_module(SkRoot_test        Libraries_test/SkRoot        TEST DEPENDS SkRoot SkFormat SkSpreadSheet ${SK_TP_TEST_DEPS})
-sk_add_module(SkFormat_test      Libraries_test/SkFormat      TEST DEPENDS SkRoot SkFormat SkSpreadSheet ${SK_TP_TEST_DEPS})
-sk_add_module(SkSpreadSheet_test Libraries_test/SkSpreadSheet TEST DEPENDS SkRoot SkFormat SkSpreadSheet ${SK_TP_TEST_DEPS})
+sk_add_module(SkFormat_test      Libraries_test/SkFormat      TEST DEPENDS SkRoot SkFormat SkSpreadSheet ${SK_TP_TEST_DEPS}
+	EXTRA_ARGS -DSK_SPREADSHEET_TEST_MULTI_USER=${SK_SPREADSHEET_TEST_MULTI_USER})
+sk_add_module(SkSpreadSheet_test Libraries_test/SkSpreadSheet TEST DEPENDS SkRoot SkFormat SkSpreadSheet ${SK_TP_TEST_DEPS}
+	EXTRA_ARGS -DSK_SPREADSHEET_TEST_MULTI_USER=${SK_SPREADSHEET_TEST_MULTI_USER})
 
 # --- Apps ---------------------------------------------------------------------
 # SkExcel CLI (SkExcel.js). wasm also builds SkExcelLib.js in a second tree:
 # SKEXCEL_WASM_LIB changes OUTPUT_NAME + link flags, so it cannot share SkExcel/wasm/.
 sk_add_module(SkExcel            SkExcel            APP DEPENDS SkSpreadSheet ${SK_TP_EXCEL_DEPS}
-	EXTRA_ARGS -DROOT:STRING=${CMAKE_SOURCE_DIR} -DSKEXCEL_WASM_LIB=OFF)
+	EXTRA_ARGS -DSKEXCEL_WASM_LIB=OFF)
 if(SK_PLATFORM STREQUAL "wasm" AND SK_BUILD_SKEXCEL_LIB)
 	sk_add_module(SkExcelLib        SkExcel            APP DEPENDS SkSpreadSheet ${SK_TP_EXCEL_DEPS}
 		BINARY_SUBDIR ${SK_BUILD_SUBDIR}_lib
-		EXTRA_ARGS -DROOT:STRING=${CMAKE_SOURCE_DIR} -DSKEXCEL_WASM_LIB=ON)
+		EXTRA_ARGS -DSKEXCEL_WASM_LIB=ON)
 endif()
 sk_add_module(SkPressureSp       SkPressureSp       APP DEPENDS SkSpreadSheet)
 # Browser module (ENVIRONMENT=web). Node needs a second tree: SK_REACT_NODE

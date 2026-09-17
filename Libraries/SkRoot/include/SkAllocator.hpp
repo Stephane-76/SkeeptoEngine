@@ -97,7 +97,8 @@ namespace SkRoot {
 			return(wIndex);
 		}
 		
-		SkInline tBool Delete(const S sIndex, const S sCallerRef) {
+		// sCallerRef is only printed under _checkallocator / debugallocator.
+		SkInline tBool Delete(const S sIndex, [[maybe_unused]] const S sCallerRef) {
 			if (sIndex >= SizeTrack) {
 #ifdef _checkallocator
 				tStringStream wStream;

@@ -89,7 +89,7 @@ include_directories(
 ## Compiler specific ===========================================================
 if (${SK_PLATFORM} STREQUAL windows)
 # Set Runtime library
-		if ($ENV{SKLINK} STREQUAL "DYNAMIC") 
+		if ("$ENV{SKLINK}" STREQUAL "DYNAMIC") 
 		message("<-LINK DYNAMIC->" )
 		if (CMAKE_BUILD_TYPE STREQUAL "Debug")		
 			set(CMAKE_CXX_FLAGS_RELEASE "/MDd")
