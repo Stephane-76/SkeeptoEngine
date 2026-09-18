@@ -24,3 +24,21 @@ jobs:
 
       - name: Test
         run: cmake --build build-unix --target run-tests
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure
+        run: >
+          cmake -G "Visual Studio 17 2022" -A x64
+          -B build-windows
+          -DSK_PLATFORM=windows
+          -DSK_CONFIGS=Release
+
+      - name: Build
+        run: cmake --build build-windows --config Release --parallel
+
+      - name: Test
+        run: cmake --build build-windows --config Release --target run-tests
