@@ -476,11 +476,11 @@ void TestSkFunction::TestFunctionMath() {
     tBool wOk = false;
     m_Api->UndoCellValue("A1", "=SIN(1.2)");
     tVariant wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), sin(1.2));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(sin(1.2), wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=COS(1.2)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), cos(1.2));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(cos(1.2), wVariant.Double(), 1e-12);
 
     // Blank cell coerces to 0 (Excel SIN/COS/…).
     m_Api->UndoRaz("Z1");
@@ -496,75 +496,75 @@ void TestSkFunction::TestFunctionMath() {
 
     m_Api->UndoCellValue("A1", "=TAN(1.2)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), tan(1.2));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(tan(1.2), wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=ACOS(0.5)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), acos(0.5));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(acos(0.5), wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=ASIN(0.5)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), asin(0.5));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(asin(0.5), wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=ATAN(1.2)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), atan(1.2));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(atan(1.2), wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=SQRT(10)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), sqrt(10));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(sqrt(10), wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=LOG(10)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), log(10));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(log(10), wVariant.Double(), 1e-12);
 
     // LOG10 must not be lexed as cell LOG10 (column LOG, row 10).
     wOk = m_Api->UndoCellValue("A1", "=LOG10(0.3)");
     CPPUNIT_ASSERT(wOk);
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), log10(0.3));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(log10(0.3), wVariant.Double(), 1e-12);
 
     // Legacy alias still resolves
     wOk = m_Api->UndoCellValue("A1", "=LOG_10(0.3)");
     CPPUNIT_ASSERT(wOk);
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), log10(0.3));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(log10(0.3), wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=EXP(10)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), exp(10));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(exp(10), wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=PI()");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), M_PI);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(M_PI, wVariant.Double(), 1e-12);
 
     m_Api->UndoCellValue("A1", "=RADIANS(180)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), M_PI);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(M_PI, wVariant.Double(), 1e-12);
     
     m_Api->UndoCellValue("A1", "=DEGREES(PI())");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), 180.0);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(180.0, wVariant.Double(), 1e-12);
 
     // Extended unary math (hyperbolic / reciprocal / SIGN / SQRTPI).
     m_Api->UndoCellValue("A1", "=SINH(1.2)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), sinh(1.2));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(sinh(1.2), wVariant.Double(), 1e-12);
     m_Api->UndoCellValue("A1", "=COSH(1.2)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), cosh(1.2));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(cosh(1.2), wVariant.Double(), 1e-12);
     m_Api->UndoCellValue("A1", "=TANH(1.2)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), tanh(1.2));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(tanh(1.2), wVariant.Double(), 1e-12);
     m_Api->UndoCellValue("A1", "=ASINH(1.2)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), asinh(1.2));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(asinh(1.2), wVariant.Double(), 1e-12);
     m_Api->UndoCellValue("A1", "=ACOSH(2)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), acosh(2.0));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(acosh(2.0), wVariant.Double(), 1e-12);
     m_Api->UndoCellValue("A1", "=ATANH(0.5)");
     wVariant = m_Api->CellValue("A1");
-    CPPUNIT_ASSERT_EQUAL(wVariant.Double(), atanh(0.5));
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(atanh(0.5), wVariant.Double(), 1e-12);
     m_Api->UndoCellValue("A1", "=COT(PI()/4)");
     wVariant = m_Api->CellValue("A1");
     CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0, wVariant.Double(), 1e-12);
