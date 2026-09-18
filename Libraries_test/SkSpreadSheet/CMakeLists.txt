@@ -272,7 +272,13 @@ elseif(${SK_PLATFORM} STREQUAL xcode)
 	)
 endif()
 
-target_link_libraries(${CURRENT_PROJECT} ${PROJECT_LIBRARY} )
+if(${SK_PLATFORM} STREQUAL unix)
+	include("${SK_ROOT}/cmake/SkLinkUnixStatics.cmake")
+	sk_link_unix_statics(${CURRENT_PROJECT}
+		EXTRA ${SK_THIRD_PARTY}/cppunit/unix/libcppunit.a)
+else()
+	target_link_libraries(${CURRENT_PROJECT} ${PROJECT_LIBRARY})
+endif()
 
 # Emscripten: preload the whole fixtures directory (one mapping, no glob). File names
 # with spaces (Calendrier sur 12 mois1.sker) stay inside the packager; they must not

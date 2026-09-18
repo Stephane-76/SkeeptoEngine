@@ -248,7 +248,13 @@ else()
 	)
 endif()
 
-target_link_libraries(${CURRENT_PROJECT} ${PROJECT_LIBRARY} )
+if(${SK_PLATFORM} STREQUAL unix)
+	include("${SK_ROOT}/cmake/SkLinkUnixStatics.cmake")
+	sk_link_unix_statics(${CURRENT_PROJECT}
+		EXTRA ${SK_THIRD_PARTY}/cppunit/unix/libcppunit.a)
+else()
+	target_link_libraries(${CURRENT_PROJECT} ${PROJECT_LIBRARY})
+endif()
 
 ## Compiler specific ===========================================================
 if (${SK_PLATFORM} STREQUAL windows)

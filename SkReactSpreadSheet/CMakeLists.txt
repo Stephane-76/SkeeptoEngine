@@ -78,12 +78,13 @@ if (${SK_PLATFORM} STREQUAL windows)
 		debug ${SK_SEARCH_LIB}/Debug/SkFormat.lib optimized ${SK_SEARCH_LIB}/Release/SkFormat.lib
 	)
 elseif(${SK_PLATFORM} STREQUAL unix)
-	set(PROJECT_LIBRARY 
-	libstdc++.a
-	${SK_SEARCH_LIB}/libSkRoot.a 
-	${SK_SEARCH_LIB}/libSkSpreadSheet.a
-	${SK_SEARCH_LIB}/libSkFormat.a
-)
+	# Dependents before dependencies (Apple ld64 has no --start-group).
+	# Do not list libstdc++.a by filename — Ubuntu CI cannot find it.
+	set(PROJECT_LIBRARY
+		${SK_SEARCH_LIB}/libSkSpreadSheet.a
+		${SK_SEARCH_LIB}/libSkFormat.a
+		${SK_SEARCH_LIB}/libSkRoot.a
+	)
 elseif(${SK_PLATFORM} STREQUAL wasm)
 	set(CMAKE_CXX_COMPILER "emcc")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++20 -Wextra")
@@ -251,7 +252,12 @@ elseif(${SK_PLATFORM} STREQUAL xcode)
 	)
 endif()
 
-target_link_libraries(${CURRENT_PROJECT} ${PROJECT_LIBRARY} )
+if(${SK_PLATFORM} STREQUAL unix)
+	include("${SK_ROOT}/cmake/SkLinkUnixStatics.cmake")
+	sk_link_unix_statics(${CURRENT_PROJECT})
+else()
+	target_link_libraries(${CURRENT_PROJECT} ${PROJECT_LIBRARY})
+endif()
 
 ## Compiler specific ===========================================================
 if (${SK_PLATFORM} STREQUAL windows)
@@ -277,7 +283,7 @@ if (${SK_PLATFORM} STREQUAL windows)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /FS")
 elseif(${SK_PLATFORM} STREQUAL unix)
 	set(CMAKE_CXX_COMPILER "/usr/bin/g++")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++2a -lpthread")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++20")
 elseif(${SK_PLATFORM} STREQUAL xcode)
 	# Improved Xcode configuration
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra")
