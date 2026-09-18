@@ -20,9 +20,9 @@ add-in. The same 344 worksheet functions run in the grid, in a headless
 server, and under an agent.
 
 This repository is the engine only: libraries, unit tests, the WASM React
-binding (`SkReactSpreadSheet`), the Excel converter (`SkExcel`), and the
-spreadsheet stress tool (`SkPressureSp`). The UI and server live in the
-Skeepto application repo.
+binding (`SkReactSpreadSheet`), the Excel converter (`SkExcel` — **read and
+write** `.xlsx`), and the spreadsheet stress tool (`SkPressureSp`). The UI and
+server live in the Skeepto application repo.
 
 ## Why this engine
 
@@ -63,8 +63,9 @@ e.g. `STDEV` / `STDEV_S`):
 | **Total** | **344** | |
 
 Modern Excel is in there: dynamic arrays, `XLOOKUP`, `LET`, higher-order
-`MAP` / `REDUCE` / `SCAN`. Import `.xlsx` with `SkExcel`; formulas keep their
-names.
+`MAP` / `REDUCE` / `SCAN`. `SkExcel` **imports and exports** `.xlsx`
+(`SkExcel2SpreadSheet` / `SkSpreadSheet2Excel`); formulas keep their names
+in both directions.
 
 ## How calculation is optimized
 
@@ -234,8 +235,8 @@ Do not copy the browser `.wasm` into `Node/Server/` (or the Node `.wasm` into
 `public/`): `-DSK_NODE` changes EM_JS layout, so a mismatched `.mjs`/`.wasm`
 pair aborts at runtime.
 
-`SkExcel.js` / `SkExcelLib.js` (xlsx conversion) and `SkPressureSp.js`
-(stress tool) land in the same `wasm/bin/` tree.
+`SkExcel.js` / `SkExcelLib.js` (`.xlsx` import **and** export) and
+`SkPressureSp.js` (stress tool) land in the same `wasm/bin/` tree.
 
 ## License
 
