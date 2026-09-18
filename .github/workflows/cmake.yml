@@ -31,11 +31,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Configure
-        run: >
-          cmake -G "Visual Studio 17 2022" -A x64
-          -B build-windows
-          -DSK_PLATFORM=windows
-          -DSK_CONFIGS=Release
+        run: cmake -A x64 -B build-windows -DSK_PLATFORM=windows -DSK_CONFIGS=Release
 
       - name: Build
         run: cmake --build build-windows --config Release --parallel
