@@ -7,7 +7,7 @@
 #ifdef SKER_FILE_DIR
 const tString CstPathBudget = tString(SKER_FILE_DIR) + "/Budget-familial.sker";
 #else
-const tString CstPathBudget="/Users/stephaneallez/Projects/Excel/Budget-familial.sker";
+const tString CstPathBudget;
 #endif
 
 namespace {

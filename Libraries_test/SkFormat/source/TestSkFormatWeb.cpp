@@ -296,7 +296,7 @@ void TestSkFormatWeb::TestSkWebDemo() {
 #ifdef SKER_FILE_DIR
     tString wFileName = tString(SKER_FILE_DIR) + "/Budget.sker";
 #else
-    tString wFileName="/Users/stephaneallez/Projects/Excel/Budget.sker";
+    tString wFileName;
 #endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {
@@ -321,7 +321,11 @@ void TestSkFormatWeb::TestSkWebDemo() {
 
 void TestSkFormatWeb::TestSkWebBudget() {
     // Just xcode
-    tString wFileName="/Users/stephaneallez/Projects/Excel/BilanEntreprise.json";
+#ifdef SKER_FILE_DIR
+    tString wFileName = tString(SKER_FILE_DIR) + "/BilanEntreprise.json";
+#else
+    tString wFileName;
+#endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {
         tString wJson = wFile.LoadString();

@@ -46,7 +46,7 @@ void TestSkExcel::TestSkInterfaceBudget() {
 #ifdef SKER_FILE_DIR
     tString wFileName = tString(SKER_FILE_DIR) + "/Budget-familial.sker";
 #else
-    tString wFileName="/Users/stephaneallez/Projects/Excel/Budget-familial.sker";
+    tString wFileName;
 #endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {

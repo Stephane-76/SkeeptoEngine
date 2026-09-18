@@ -116,8 +116,12 @@ void TestSkJson::ReadMultiSheet() {
     m_Api->AddSheet("Sheet1");
     Fill();
 
-    // Just xcode
-    tString wFileName="/Users/stephaneallez/Projects/Excel/Budget.json";
+    // Optional fixture in <repo>/File/; skipped when the file is absent.
+#ifdef SKER_FILE_DIR
+    tString wFileName = tString(SKER_FILE_DIR) + "/Budget.json";
+#else
+    tString wFileName;
+#endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {
         tString wJson = wFile.LoadString();
@@ -144,7 +148,7 @@ void TestSkJson::Excel() {
 #ifdef SKER_FILE_DIR
     tString wFileName = tString(SKER_FILE_DIR) + "/Budget.sker";
 #else
-    tString wFileName="/Users/stephaneallez/Projects/Excel/Budget.sker";
+    tString wFileName;
 #endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {

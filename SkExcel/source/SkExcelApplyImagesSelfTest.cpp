@@ -19,8 +19,10 @@ namespace SkExcel {
 tString DefaultApplyImagesTestXlsxPath() {
 #if defined(__EMSCRIPTEN__)
     return "/home/web_user/Projects/Excel/Budget-familial.xlsx";
+#elif defined(SKER_FILE_DIR)
+    return tString(SKER_FILE_DIR) + "/Budget-familial.xlsx";
 #else
-    return "/Users/stephaneallez/Projects/Excel/Budget-familial.xlsx";
+    return {};
 #endif
 }
 

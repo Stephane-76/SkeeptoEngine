@@ -438,36 +438,7 @@ tInt main(tInt sArgc, char** sArgv) {
         return wCode;
     }
     
-    //wFileName="/Users/stephaneallez/Projects/Excel/Gestionnaire de formation universitaire1.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/BudgetPerso.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Financial Sample.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/smalldata.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Budget-familial.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Calendrier sur 12 mois1.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Calendar.xlsx";
-    //wDirectoryName="/Users/stephaneallez/Projects/Excel";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Pret.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Debug1.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Tableau des flux de trésorerie.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Planning de chantier - Skello.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Suivi des ventes en ligne1.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Budget.xlsx";
-    //sWFileName="/Users/stephaneallez/Projects/Excel/Bilan.xlsx";
-    //sWFileName="/Users/stephaneallez/Projects/Excel/ExempleBilan.xlsx";
-    //sWFileName="/Users/stephaneallez/Projects/Excel/Taux.xlsx";
-    //sWFileName="/Users/stephaneallez/Projects/Excel/documents_comptables.xlsx";
-    //sWFileName="/Users/stephaneallez/Projects/Excel/modele_de_bilan_comptable_abrege.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Book.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Diagramme de Gantt Agile.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Amort.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/AmortBis.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Horaires.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/Superstore.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/TestData.xlsx";
-    // Local debug only (keep commented): hardcoding here breaks Node /files/convert-xlsx, which relies on /f: and /u:.
-    //wFileName="/Users/stephaneallez/Projects/Excel/Consultant.xlsx";
-    //wFileName="/Users/stephaneallez/Projects/Excel/INSIDE DEMO SITUATION 31052017 JL78.xlsx";
-    // wUri="/BudgetF.sker";
+    // Pass the input with /f: (and optional /u:). Do not hardcode a local path here.
     if (wFileName=="") {
         std::cout << " Enter SkExcel /f:xxxx or d:xxxx" << endl;
         std::cout << "  /m:sker2xlsx  export .sker to .xlsx (use with /f: and optional /x:)" << endl;

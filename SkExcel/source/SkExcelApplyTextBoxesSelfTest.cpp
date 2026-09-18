@@ -19,8 +19,10 @@ namespace SkExcel {
 tString DefaultApplyTextBoxesTestXlsxPath() {
 #if defined(__EMSCRIPTEN__)
     return "/home/web_user/Projects/Excel/Feuille de bilan comptable bleue.xlsx";
+#elif defined(SKER_FILE_DIR)
+    return tString(SKER_FILE_DIR) + "/Feuille de bilan comptable bleue.xlsx";
 #else
-    return "/Users/stephaneallez/Projects/Excel/Feuille de bilan comptable bleue.xlsx";
+    return {};
 #endif
 }
 

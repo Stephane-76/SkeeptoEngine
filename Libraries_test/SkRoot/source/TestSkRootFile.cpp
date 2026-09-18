@@ -51,8 +51,9 @@ void TestSkRootFile::TestStringLoad() {
 void TestSkRootFile::TestDirectory() {
     tDirectory wDirectory;
     wDirectory.LoadFile("./","^.*\\.json$");
-    
-    wDirectory.LoadFile("/Users/stephaneallez/Projects/Excel","^.*\\.xlsx$");
+#ifdef SKER_FILE_DIR
+    wDirectory.LoadFile(SKER_FILE_DIR, "^.*\\.sker$");
+#endif
     
     for(auto wFile : wDirectory.VectorFile()) {
         //cout << wFile.Directory() + wFile.FileName()  << endl;

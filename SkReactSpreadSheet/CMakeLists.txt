@@ -63,6 +63,11 @@ add_executable(${CURRENT_PROJECT}
 	${SRCFILES}
 )
 
+if(EXISTS "${SK_ROOT}/File")
+	file(TO_CMAKE_PATH "${SK_ROOT}/File" _SKER_FILE_DIR)
+	target_compile_definitions(${CURRENT_PROJECT} PRIVATE "SKER_FILE_DIR=\"${_SKER_FILE_DIR}\"")
+endif()
+
 ## link with library ========================================================== 
 set(SK_SEARCH_LIB ${SK_OUTPUT}/lib)
 

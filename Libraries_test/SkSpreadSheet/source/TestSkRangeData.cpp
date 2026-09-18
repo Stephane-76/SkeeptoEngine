@@ -656,8 +656,7 @@ void TestSkRangeData::TestRangeDataSortMultiColumnReorganizeCells() {
 
 #ifndef __EMSCRIPTEN__
 void TestSkRangeData::TestCsvLoadAndSort() {
-	// Load CSV file
-	tString wCsvPath = "/Users/stephaneallez/Projects/library/libraries_test/SkFileTest/test_data.csv";
+	tString wCsvPath = tString(SKER_FILE_DIR) + "/test_data.csv";
 	tCsvImport wCsvImport(',', '"', true);
 
 	// Import CSV starting at A1

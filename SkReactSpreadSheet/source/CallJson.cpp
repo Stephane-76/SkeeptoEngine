@@ -135,7 +135,11 @@ int CallWithJson() {
 
     
     
-    tString wFileName="/Users/stephaneallez/Projects/Excel/Horaires.json";
+#ifdef SKER_FILE_DIR
+    tString wFileName = tString(SKER_FILE_DIR) + "/Horaires.json";
+#else
+    tString wFileName;
+#endif
     tFile wFile=tFile(wFileName);
     if (wFile.Exist()) {
         tString wJson = wFile.LoadString();

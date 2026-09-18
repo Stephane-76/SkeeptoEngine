@@ -15,8 +15,7 @@ TestSkObj::TestSkObj() :CPPUNIT_NS::TestFixture(), m_Application(nullptr) {
 
 void TestSkObj::TestParse() {
 #ifndef __EMSCRIPTEN__
-    // Portable JSON: DataModel.json exists on this Mac but not on Windows,
-    // and its root key is "Name" (not "name"). Always assert the known payload.
+    // Optional DataModel.json in <repo>/File/; skipped when the file is absent.
     tObj wObj;
     tString wJson = "{\"name\":\"test\",\"value\":1}";
     CPPUNIT_ASSERT(wObj.Parse(wJson));
@@ -26,7 +25,11 @@ void TestSkObj::TestParse() {
     CPPUNIT_ASSERT(wObj.HasProperty("value"));
     CPPUNIT_ASSERT(wObj.Get("value").Int() == 1);
 
-    tFile wFile("/Users/stephaneallez/Projects/library/libraries_test/SkFileTest/MetaModel/DataModel.json");
+#ifdef SKER_FILE_DIR
+    tFile wFile(tString(SKER_FILE_DIR) + "/DataModel.json");
+#else
+    tFile wFile;
+#endif
     if (wFile.Exist()) {
         tObj wModel;
         CPPUNIT_ASSERT(wModel.Parse(wFile.LoadString()));
