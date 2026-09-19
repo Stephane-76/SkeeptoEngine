@@ -220,7 +220,13 @@ endfunction()
 # --- cppunit (unit tests) -------------------------------------------------------
 if(SK_BUILD_TESTS)
 	if(SK_PLATFORM STREQUAL "windows")
-		set(_cppunit_art "${SK_TP}/cppunit/${SK_BUILD_SUBDIR}/Debug/cppunit.lib")
+		# CI passes -DSK_CONFIGS=Release, so Debug/cppunit.lib is never produced.
+		if(SK_MULTI_CONFIG)
+			list(GET SK_CONFIGS 0 _cppunit_cfg)
+		else()
+			set(_cppunit_cfg "Release")
+		endif()
+		set(_cppunit_art "${SK_TP}/cppunit/${SK_BUILD_SUBDIR}/${_cppunit_cfg}/cppunit.lib")
 	elseif(SK_PLATFORM STREQUAL "xcode")
 		set(_cppunit_art "${SK_TP}/cppunit/xcode/Debug/libcppunit.a")
 	elseif(SK_PLATFORM STREQUAL "wasm")
@@ -235,7 +241,7 @@ if(SK_BUILD_TESTS)
 	sk_tp_already_or_build(cppunit "${_cppunit_art}")
 	if(SK_TP_NEED_BUILD)
 		sk_invalidate_ep(cppunit BINARY_DIR "${SK_TP}/cppunit/${SK_BUILD_SUBDIR}")
-		set(_cppunit_args)
+		set(_cppunit_args -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
 		if(SK_PLATFORM STREQUAL "wasm")
 			list(APPEND _cppunit_args
 				-DCMAKE_TOOLCHAIN_FILE=${SK_EMSCRIPTEN_TOOLCHAIN}
@@ -338,7 +344,11 @@ if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "wasm" OR SK_PLATFORM STREQUAL "windo
 			set(_libzip_src "${SK_TP}/libzip")
 		endif()
 
-		set(_z_args -DCMAKE_INSTALL_PREFIX=${_zlib_prefix} -DCMAKE_INSTALL_LIBDIR=lib)
+		set(_z_args
+			-DCMAKE_INSTALL_PREFIX=${_zlib_prefix}
+			-DCMAKE_INSTALL_LIBDIR=lib
+			-DCMAKE_POLICY_VERSION_MINIMUM=3.5
+		)
 		set(_z_args_libzip
 			-DCMAKE_INSTALL_PREFIX=${_libzip_prefix}
 			-DCMAKE_INSTALL_LIBDIR=lib

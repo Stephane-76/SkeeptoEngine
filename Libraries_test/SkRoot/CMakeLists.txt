@@ -221,6 +221,8 @@ endif()
 ## Compiler specific ===========================================================
 if (${SK_PLATFORM} STREQUAL windows)
 	# Set Runtime library
+	# Keep /MD (CMake/MSVC default) unless SKLINK=DYNAMIC is set. A real else()
+	# /MT here used to LNK2038 against cppunit.lib and SkRoot.lib (/MD).
 	if ("$ENV{SKLINK}" STREQUAL "DYNAMIC")
 		message("<-LINK DYNAMIC->" )
 		if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -228,8 +230,7 @@ if (${SK_PLATFORM} STREQUAL windows)
 		else()
 			set(CMAKE_CXX_FLAGS_RELEASE "/MD")
 		endif()
-	else()
-		# Set Static runtime library
+	elseif ("$ENV{SKLINK}" STREQUAL "STATIC")
 		message("<-LINK STATIC->" )
 		if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 			set(CMAKE_CXX_FLAGS_RELEASE "/MTd")

@@ -36,5 +36,29 @@ jobs:
       - name: Build
         run: cmake --build build-windows --config Release --parallel
 
+      - name: Dump MSVC / CMake errors
+        if: failure()
+        shell: pwsh
+        run: |
+          Write-Host "==== error C / LNK / CMake Error / MSB8066 ===="
+          $roots = @(
+            "build-windows",
+            "Libraries",
+            "Libraries_test",
+            "SkExcel",
+            "SkPressureSp",
+            "SkReactSpreadSheet",
+            "third-party"
+          )
+          Get-ChildItem -Path $roots -Recurse -Include *.log,*.txt,BuildLog.htm -ErrorAction SilentlyContinue |
+            ForEach-Object {
+              $hits = Select-String -Path $_.FullName -Pattern "error C[0-9]+","error LNK","CMake Error","MSB8066","FAILED:" |
+                Select-Object -First 30
+              if ($hits) {
+                Write-Host "==== $($_.FullName) ===="
+                $hits | ForEach-Object { $_.Line }
+              }
+            }
+
       - name: Test
         run: cmake --build build-windows --config Release --target run-tests
