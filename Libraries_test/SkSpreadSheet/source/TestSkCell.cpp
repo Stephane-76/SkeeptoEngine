@@ -497,6 +497,7 @@ void TestSkCell::setUp() {
 	m_Application = tApplication::Instance();
     m_Application->Locale("fr");
 	m_Api = new tApi;
+	m_Api->IsUndoActif(true);
 	m_Api->NewWorkBook("wwww.skeema.fr/w1");
 };
 

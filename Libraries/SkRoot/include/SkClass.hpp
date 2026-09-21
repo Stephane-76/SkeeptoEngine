@@ -916,7 +916,14 @@ namespace SkRoot {
 
 #ifdef _DEBUGLeak
     void DebugMemory();
+#else
+    inline void DebugMemory() {}
 #endif
+    /// When false, ~tApplication does not dump leftover tClass objects (embedders).
+    /// Native tests keep the default (true). Always linked so Python Release
+    /// builds can call it against a DEBUG libSkRoot.a.
+    void ReportLeakAtExit(tBool sReport);
+    tBool ReportLeakAtExit();
 
 }; // end of namespace ========================================================
 #endif

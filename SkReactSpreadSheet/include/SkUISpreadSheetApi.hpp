@@ -150,6 +150,13 @@ namespace SkSpreadSheet {
         
         /// @brief      Redo the last undone action
         void _Redo();
+
+        /// @brief      Get undo-stack recording status (default false on tApi).
+        tBool _IsUndoActif();
+
+        /// @brief      Enable or disable undo-stack recording.
+        /// @param[in]  sIsUndoActif tBool
+        void _SetIsUndoActif(tBool sIsUndoActif);
         
         /// @brief      Set extra undo information
         /// @param[in]  sJson tString JSON string

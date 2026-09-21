@@ -124,6 +124,7 @@ void TestSkJsonFormatString::setUp() {
     m_Application = tApplication::Instance();
     
     m_Api = new tApi;
+    m_Api->IsUndoActif(true);
     m_Api->NewWorkBook("test.skeema.fr/workbook1");
 }
 

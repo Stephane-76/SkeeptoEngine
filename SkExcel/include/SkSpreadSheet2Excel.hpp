@@ -413,6 +413,26 @@ public:
     /// @param sMarkers Whether markers are shown
     /// @return True if successful, false otherwise
     tBool AddSparkline(const tString& sCell, const tString& sSourceRange, tBool sMarkers = true);
+
+    /// @brief Register a drawing chart on the current sheet (bar/line/area/pie).
+    /// @param sType bar, line, area, or pie
+    /// @param sTitle Chart title (plain text)
+    /// @param sCategoryRef Excel formula for categories (Sheet!$A$3:$A$5)
+    /// @param sValueRef Excel formula for values
+    /// @param sSeriesName Series display name
+    /// @param sFromCol 0-based anchor column
+    /// @param sFromRow 0-based anchor row
+    /// @param sColOffEmu Offset from anchor column in EMUs
+    /// @param sRowOffEmu Offset from anchor row in EMUs
+    /// @param sCxEmu Width in EMUs
+    /// @param sCyEmu Height in EMUs
+    /// @param sBarDirection vertical (clustered columns) or horizontal
+    /// @return True if successful, false otherwise
+    tBool AddChart(const tString& sType, const tString& sTitle,
+                   const tString& sCategoryRef, const tString& sValueRef,
+                   const tString& sSeriesName, tInt sFromCol, tInt sFromRow,
+                   tInt sColOffEmu, tInt sRowOffEmu, tInt sCxEmu, tInt sCyEmu,
+                   const tString& sBarDirection = "vertical");
     
 private:
     class Impl;

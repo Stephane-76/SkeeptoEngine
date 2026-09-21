@@ -418,6 +418,7 @@ void TestSkFormatWeb::setUp() {
     m_Application = tApplication::Instance();
     m_FormatRoot = tFormatRoot::Instance();
     m_Api = new SkSpreadSheet::tApi;
+    m_Api->IsUndoActif(true);
     m_Api->NewWorkBook("wwww.skeema.fr/w1");
     m_FormatApi=new SkFormat::tFormatCssApi();
     m_Api->FormatApi((tFormatApi*)m_FormatApi);

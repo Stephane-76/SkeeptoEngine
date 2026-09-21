@@ -227,6 +227,7 @@ void TestSkWorkBook::setUp() {
 
 	m_Application = tApplication::Instance();
 	m_Api = new tApi;
+	m_Api->IsUndoActif(true);
 	m_Api->NewWorkBook("wwww.skeema.fr/w1");
 };
 

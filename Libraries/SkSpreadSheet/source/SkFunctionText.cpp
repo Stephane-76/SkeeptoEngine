@@ -7,6 +7,7 @@
 #include "../include/SkCell.hpp"
 #include "../../SkRoot/include/SkUtf.hpp"
 #include "../../SkRoot/include/SkFormatDate.hpp"
+#include "../../SkRoot/include/SkFormatNumber.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -690,13 +691,17 @@ tStackElem tFunctionText::Call(tStackElems* sStackElems, tShort sNbArg) {
             }
         }
         if (wResult.empty()) {
-            tStringStream wStream;
-            if (wValue.Type() == tVariantType::t_int) {
-                wStream << wValue.Int();
+            if (SkRoot::IsValidExcelNumberFormat(wFormatStr)) {
+                wResult = SkRoot::FormatWithExcelNumberFormat(wValue.Numeric(), wFormatStr);
             } else {
-                wStream << wValue.Double();
+                tStringStream wStream;
+                if (wValue.Type() == tVariantType::t_int) {
+                    wStream << wValue.Int();
+                } else {
+                    wStream << wValue.Double();
+                }
+                wResult = wStream.str();
             }
-            wResult = wStream.str();
         }
     } else if (wValue.Type() == tVariantType::t_string) {
         const auto wSecs = SkRoot::SplitExcelFormatSections(wFormatStr);

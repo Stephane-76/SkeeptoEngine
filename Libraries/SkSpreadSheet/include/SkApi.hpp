@@ -122,10 +122,11 @@ namespace SkSpreadSheet {
         tBool Alone();
  
         /// @brief Set undo active status.
-        /// @param[in] sIsUndo tBool
+        /// @param[in] sIsUndoActif tBool
         void IsUndoActif(tBool sIsUndoActif);
         
         /// @brief        Get undo active status.
+        /// Default is false: commands apply but are not recorded on the undo stack.
         /// @return       tBool
         tBool IsUndoActif();
         

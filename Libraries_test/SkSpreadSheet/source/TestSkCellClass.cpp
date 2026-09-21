@@ -309,6 +309,7 @@ void TestSkCellClass::setUp() {
 	std::filesystem::remove_all("./Spreadsheet");
 	m_Application = tApplication::Instance();
 	m_Api = new tApi;
+	m_Api->IsUndoActif(true);
 	m_Api->NewWorkBook("wwww.skeema.fr/w1");
 };
 

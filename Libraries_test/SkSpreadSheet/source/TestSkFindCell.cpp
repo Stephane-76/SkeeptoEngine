@@ -66,6 +66,7 @@ void TestSkFindCell::setUp() {
 	m_Application->Locale("us");
 	tFormatRoot::Instance();
 	m_Api = new tApi;
+	m_Api->IsUndoActif(true);
 	m_Api->NewWorkBook("wwww.skeema.fr/w1");
 	m_FormatApi = new tFormatCssApi();
 	m_Api->FormatApi(m_FormatApi);

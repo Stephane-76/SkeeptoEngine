@@ -24,6 +24,7 @@ void TestSkDynamicRange::setUp() {
 	// Use "us" so INDEX(A1:C3,1,3) has three args (comma = list separator, not decimal)
 	m_Application->Locale("us");
 	m_Api = new tApi;
+	m_Api->IsUndoActif(true);
 	m_Api->NewWorkBook("test_dynamic_range");
 }
 

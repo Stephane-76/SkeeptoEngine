@@ -1474,11 +1474,25 @@ static tBool ParseOoxmlCellValueToVariant(
 
 } // namespace
 
+namespace {
+    // Restore the caller's undo flag even if the import helper returns early.
+    class tUndoActifScope {
+        tApi& m_Api;
+        tBool m_Previous;
+    public:
+        tUndoActifScope(tApi& sApi, tBool sActive)
+            : m_Api(sApi), m_Previous(sApi.IsUndoActif()) {
+            m_Api.IsUndoActif(sActive);
+        }
+        ~tUndoActifScope() { m_Api.IsUndoActif(m_Previous); }
+    };
+} // namespace
+
 /// @brief Promote worksheet autoFilter / _FilterDatabase to engine RangeData.
 void tExcel2SpreadSheet::ProcessWorksheetAutoFilters(const tExcelPugiXMLReader& sReader, tApi& sApi) {
     static const tString kFilterDatabaseName = "_xlnm._FilterDatabase";
 
-    sApi.IsUndoActif(false);
+    tUndoActifScope wUndoOff(sApi, false);
     for (tInt wS = 1;; ++wS) {
         const tString wSheetFile = "xl/worksheets/sheet" + std::to_string(wS) + ".xml";
         auto wItSheet = sReader.GetUnzippedFile(wSheetFile);
@@ -1596,7 +1610,6 @@ void tExcel2SpreadSheet::ProcessWorksheetAutoFilters(const tExcelPugiXMLReader& 
         sApi.EnsureRangeData(wRangeName, wJsonStream.str(), wTop, wLeft, wBottom, wRight, wSheet);
         m_MapRangeNamed.erase(kFilterDatabaseName);
     }
-    sApi.IsUndoActif(true);
 }
 
 /// @brief Project table style formatting onto cell-level CSS.
@@ -3095,7 +3108,7 @@ void tExcel2SpreadSheet::AdjacencyConvertCellBorders() {
 }
 
 void tExcel2SpreadSheet::ApplyCssStyles(tApi& sApi) {
-    sApi.IsUndoActif(false);
+    tUndoActifScope wUndoOff(sApi, false);
     typedef map<tString,tString> tMapDebug;
     tMapDebug wMapDebug;
 
@@ -3149,7 +3162,7 @@ void tExcel2SpreadSheet::ApplyCssStyles(tApi& sApi) {
 
 /// @brief Apply named ranges to cells
 void tExcel2SpreadSheet::ApplyNamedRanges(tApi& sApi) {
-    sApi.IsUndoActif(false);
+    tUndoActifScope wUndoOff(sApi, false);
     // First create Named Range
     for(auto wRangeNamedItem : m_MapRangeNamed) {
         const tString& wName = wRangeNamedItem.first;
@@ -3163,15 +3176,13 @@ void tExcel2SpreadSheet::ApplyNamedRanges(tApi& sApi) {
             CreateFormulaNamedRange(sApi, wName, wRangeNamed.m_Formula);
         }
     }
-    
-    sApi.IsUndoActif(true);
 }
 
 void tExcel2SpreadSheet::ApplyFormulas(tApi& sApi) {
 #ifdef debuginfo
     cout << "ApplyFormulas()" << endl;
 #endif
-    sApi.IsUndoActif(false);
+    tUndoActifScope wUndoOff(sApi, false);
     tSize wCompiledCount = 0;
     // Apply named-formula sheet (_$$) first: std::map order puts "JANVIER" before "_$$" ('J' < '_'); sheet formulas
     // that reference FormulaNamed names need the _$$ definition cells compiled first (e.g. JoursEtSemaines matrix).
@@ -3288,7 +3299,6 @@ void tExcel2SpreadSheet::ApplyFormulas(tApi& sApi) {
 #ifdef debuginfo
     cout << "ApplyFormulas: compiled=" << wCompiledCount << endl;
 #endif
-    sApi.IsUndoActif(true);
 }
 
 void tExcel2SpreadSheet::ApplyCachedFormulaValues(tApi& sApi) {
@@ -3492,6 +3502,10 @@ tBool tExcel2SpreadSheet::ImportXlsxToApi(const tString& sXlsxPath, tApi& sApi) 
 #ifdef debuginfo
     cout <<  "SaveOuputFile(" << sXlsxPath << "))" << endl;
 #endif
+    if (!m_WriteSkerOnImport) {
+        SkExcelReportProgress(100);
+        return true;
+    }
     // Save output file
     tBool wSaved = SaveOutputFile(sXlsxPath, sApi);
     SkExcelReportProgress(100);

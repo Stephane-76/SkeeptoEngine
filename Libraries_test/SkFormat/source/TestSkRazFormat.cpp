@@ -178,6 +178,7 @@ void TestSkRazFormat::setUp() {
     m_Application = tApplication::Instance();
     m_FormatRoot = tFormatRoot::Instance();
     m_Api = new tApi;
+    m_Api->IsUndoActif(true);
     m_Api->NewWorkBook("wwww.skeema.fr/w1");
     // Attach the CSS engine so UndoCellFormat/CellFormat parse and serialize CSS.
     m_FormatApi = new tFormatCssApi();

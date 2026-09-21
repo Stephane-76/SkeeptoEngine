@@ -13,6 +13,7 @@ namespace SkRoot {
 #ifdef _DEBUGLeak
 	int StaticTotalAlloc = 0;
 	int StaticDiff = 0;
+	tBool StaticReportLeakAtExit = true;
 	// warning This Class is not desalocate at the end
 	tClassUnorderedContainer<tClass>* StaticClassMemoryDebug = nullptr;
 #endif 
@@ -166,6 +167,17 @@ namespace SkRoot {
 	void DebugMemory() {
 		if (StaticClassMemoryDebug!=nullptr) StaticClassMemoryDebug->DebugApplicationMemory();
 	}
+
+	void ReportLeakAtExit(tBool sReport) {
+		StaticReportLeakAtExit = sReport;
+	}
+
+	tBool ReportLeakAtExit() {
+		return StaticReportLeakAtExit;
+	}
+#else
+	void ReportLeakAtExit(tBool) {}
+	tBool ReportLeakAtExit() { return false; }
 #endif
 
 }; // Fin du namespace ========================================================

@@ -150,6 +150,42 @@ if (wTestString.IsNumber()) {
 }
 ```
 
+## Debug leak counter on `tClass`
+
+Every engine object inherits `tClass`. In **DEBUG** builds, `tClass` tracks live
+instances so leaked objects can be reported. In **RELEASE**, that tracking is
+compiled out: no extra member, no inserts, no dump.
+
+`_DEBUGLeak` is defined in `SkTypes.hpp` whenever the build is not release:
+
+| Target | DEBUG | RELEASE |
+|--------|-------|---------|
+| Native | no `NDEBUG` (MSVC also requires `_DEBUG`) | `NDEBUG`, or MSVC without `_DEBUG` |
+| WASM | `SK_COMPIL` is not `RELEASE` | `SK_RELEASE` from CMake |
+
+When `_DEBUGLeak` is on:
+
+- Each `tClass` stores a serial number in `m_IndiceAlloc` (`GetNbAlloc()`).
+- Construction increments a global counter (`StaticTotalAlloc`) and a live
+  count (`StaticDiff`), then registers `this` in `StaticClassMemoryDebug`.
+- Destruction decrements `StaticDiff` and unregisters `this`.
+- At process end, `tApplication`’s destructor calls `DebugMemory()` **unless**
+  `ReportLeakAtExit(false)` was set (Python bindings do this so pytest stays
+  quiet). Native test binaries keep the default dump. Set `SK_DEBUG_LEAK=1`
+  in the Python process to turn the dump back on. `ReportLeakAtExit` is always
+  linked (even when the Python `.so` is built with `NDEBUG`) so a DEBUG
+  `libSkRoot.a` still honors the flag.
+
+```cpp
+#ifdef _DEBUGLeak
+    int m_IndiceAlloc;   // present on tClass in DEBUG only
+    int GetNbAlloc();
+#endif
+```
+
+Do not rely on `m_IndiceAlloc` or `DebugMemory()` in RELEASE: the macros are
+absent and the code does not compile.
+
 ## Variants (`tVariant`)
 
 `tVariant` is the 16-byte tagged union used by spreadsheet cells

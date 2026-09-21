@@ -452,6 +452,8 @@ void UndoWriteSheetSh(Writer<StringBuffer>* sWriter, const tSharedString& sSheet
     }
     //=========================================================================
     tUndoSpreadSheet::tUndoSpreadSheet(tMode sMode) : tUndo(), m_Mode(sMode),m_Error(""),m_SequenceId(0),m_OperationId(0) {
+        // Commands always snapshot. tApi::IsUndoActif() decides whether the
+        // finished command stays on the undo stack (see tApi::Do).
         m_Mode.Set(t_IsUndoActif);
         // Capture current sequence ID for rebase
         m_SequenceId = 0;

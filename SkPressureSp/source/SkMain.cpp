@@ -48,6 +48,7 @@ using namespace SkSpreadSheet;
 #endif
 
 			tApi* wApi = new tApi();
+			wApi->IsUndoActif(true);
 			wApi->WorkBook("wwww.Sker.fr/SkPressure");
 			wApi->ActiveSheet("Sheet1");
 			//Test(wApi);

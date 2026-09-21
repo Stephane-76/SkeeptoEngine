@@ -171,6 +171,7 @@ void TestSkRangeNamed::setUp() {
 	m_NbRow = 10;
 	m_NbCol = 5;
 	m_Api = new tApi;
+	m_Api->IsUndoActif(true);
 	m_Api->NewWorkBook("wwww.skeema.fr/w1");
 };
 

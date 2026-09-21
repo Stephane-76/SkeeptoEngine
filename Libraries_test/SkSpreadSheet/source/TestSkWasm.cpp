@@ -77,6 +77,7 @@ void TestSkWasm::setUp() {
 
     m_Application = tApplication::Instance();
     m_Api = new tApi;
+    m_Api->IsUndoActif(true);
 }
 
 void TestSkWasm::tearDown() {

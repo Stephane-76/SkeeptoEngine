@@ -103,6 +103,10 @@ namespace SkExcel {
         //! When true, run RecalculateAll at import instead of OOXML cached <v> (slow / risky on large workbooks).
         tBool m_RecalculateAtImport = false;
 
+        //! When true, ImportXlsxToApi also writes a sibling .sker (CLI). In-process
+        //! clients (Python) skip that side effect.
+        tBool m_WriteSkerOnImport = true;
+
     public:
         void DrawCell(tApi& sApi,tString sTitle,tInt sRowBegin, tInt sColBegin, tInt sRowEnd, tInt sColEnd);
         
@@ -244,6 +248,10 @@ namespace SkExcel {
         /// @brief Opt-in: RecalculateAll after ApplyFormulas (default: OOXML cached values).
         void SetRecalculateAtImport(tBool sEnabled) { m_RecalculateAtImport = sEnabled; }
         tBool RecalculateAtImport() const { return m_RecalculateAtImport; }
+
+        /// @brief Write a sibling .sker next to the .xlsx (CLI default). Set false in-process.
+        void SetWriteSkerOnImport(tBool sEnabled) { m_WriteSkerOnImport = sEnabled; }
+        tBool WriteSkerOnImport() const { return m_WriteSkerOnImport; }
         /// @brief Get table metadata by table name
         const tTableMetadata* GetTableMetadata(const tString& sTableName) const;
         /// @brief Get all table names

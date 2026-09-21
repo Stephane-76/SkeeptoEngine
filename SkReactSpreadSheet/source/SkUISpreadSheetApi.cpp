@@ -134,6 +134,8 @@ EMSCRIPTEN_BINDINGS(Module) {
         
         .function("Undo", &tUISpreadSheet::_Undo)
         .function("Redo", &tUISpreadSheet::_Redo)
+        .function("IsUndoActif", &tUISpreadSheet::_IsUndoActif)
+        .function("SetIsUndoActif", &tUISpreadSheet::_SetIsUndoActif)
 
         //User Interface ======================================================
         .function("SetUserInterface", &tUISpreadSheet::_SetUserInterface)
@@ -413,8 +415,15 @@ EMSCRIPTEN_BINDINGS(Module) {
         // One Format Api for the application
         m_FormatApi=new  SkFormat::tFormatCssApi();
         FormatApi(m_FormatApi);
+        // tUISpreadSheet is the skeepto UI: undo must stay on. Python opts out
+        // after construction; tApi itself defaults to false for batch clients.
+        IsUndoActif(true);
+#ifdef __EMSCRIPTEN__
+        // PostMessage / OnCellChange target the JS host. Native (Python, tests)
+        // stays Client(false) with no cell-change hook.
         tSpreadSheetContainer::SetOnCellChange(&OnCellChange);
         wStaticUISpreadSheet=this;
+        Client(true);
 		cout << "tUISpreadSheet::tUISpreadSheet(";
 #ifdef _DEBUGSK
         cout << "DEBUG";
@@ -422,14 +431,17 @@ EMSCRIPTEN_BINDINGS(Module) {
         cout << "RELEASE";
 #endif
         cout << ")" << endl;
-
-        Client(true);
+#endif
 	}
 
 	tUISpreadSheet::~tUISpreadSheet() {
 #ifdef DebugInterface
 		cout << "tUISpreadSheet::~tUISpreadSheet()" << endl;
 #endif
+        if (wStaticUISpreadSheet == this) {
+            tSpreadSheetContainer::SetOnCellChange(nullptr);
+            wStaticUISpreadSheet = nullptr;
+        }
         // Delete m_FormatApi
         delete(m_FormatApi);
         m_FormatApi=nullptr;
@@ -826,6 +838,14 @@ void tUISpreadSheet::_OnCellChange(tCell* sCell,tVariant& sValue) {
         Check();
 #endif
 #endif
+    }
+
+    tBool tUISpreadSheet::_IsUndoActif() {
+        return(IsUndoActif());
+    }
+
+    void tUISpreadSheet::_SetIsUndoActif(tBool sIsUndoActif) {
+        IsUndoActif(sIsUndoActif);
     }
 
     void tUISpreadSheet::_SetExtraUndo(tString sJson) {
@@ -3299,6 +3319,14 @@ void tUISpreadSheet::_OnCellChange(tCell* sCell,tVariant& sValue) {
             {"Redo", [](tUISpreadSheet* self, const Document&) -> tString {
                 self->_Redo();
                 return JsonStringResult("true");
+            }},
+            {"IsUndoActif", [](tUISpreadSheet* self, const Document&) -> tString {
+                return JsonBoolResult(self->_IsUndoActif());
+            }},
+            {"SetIsUndoActif", [](tUISpreadSheet* self, const Document& params) -> tString {
+                tBool active = params.HasMember("active") && params["active"].GetBool();
+                self->_SetIsUndoActif(active);
+                return JsonBoolResult(true);
             }},
             {"SetExtraUndo", [](tUISpreadSheet* self, const Document& params) -> tString {
                 tString json = params["json"].GetString();

@@ -74,7 +74,7 @@ namespace SkRoot {
 		delete(m_ClassFactory);
 #ifdef _DEBUGLeak
 		// Only report once, when destroying the singleton (avoids double report for tApplication-derived instances like tLexerData)
-		if (this == Instance()) {
+		if (this == Instance() && ReportLeakAtExit()) {
 			DebugMemory();
 		}
 #endif

@@ -9,6 +9,7 @@ using namespace SkSpreadSheet;
 int main() {
 	std::cout << "SkReactSpreadSheet version 1.0" << endl;
 	tUISpreadSheet* wUISpreadSheet = new tUISpreadSheet();
+    wUISpreadSheet->IsUndoActif(true);
     tBool wOk;
 
     // For Debug
@@ -166,6 +167,7 @@ int main() {
     tApplication::Instance()->ClearUndoRedo();
     
     wUISpreadSheet = new tUISpreadSheet();
+    wUISpreadSheet->IsUndoActif(true);
     wUISpreadSheet->_RegisterClassAttribute("JavaScriptObj","Javascript object","Javascript");
 #ifdef checkfo
     wUISpreadSheet->CheckFormat();

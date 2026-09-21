@@ -972,6 +972,7 @@ void TestSkFormula::setUp() {
     // Test On CellChange
     tSpreadSheetContainer::SetOnCellChange(&OnCellChange);
     m_Api = new tApi;
+    m_Api->IsUndoActif(true);
     m_Api->NewWorkBook("wwww.skeema.fr/w1");
 
 };

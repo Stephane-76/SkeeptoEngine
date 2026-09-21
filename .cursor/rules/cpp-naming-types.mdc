@@ -54,3 +54,5 @@ Enums are `enum class` with a `t` name; enumerators often use `t_…` (`tVariant
 - `tClassError`: spreadsheet errors (`tTypeError`)
 
 Cell values use `tVariant` (16-byte tagged union: `m_Type`, `m_Extra`, `m_Union`). Setters take `sValue`.
+
+In **DEBUG**, `_DEBUGLeak` gives every `tClass` a live-instance counter (`m_IndiceAlloc`, `DebugMemory()`). In **RELEASE** that code is compiled out — do not use those members outside `#ifdef _DEBUGLeak`. See `docs/Cpp-Conventions.md`.

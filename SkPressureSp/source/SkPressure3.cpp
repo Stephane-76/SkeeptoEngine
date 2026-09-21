@@ -211,6 +211,7 @@ void Pressure3(tApi*& sApi) {
         tApplication::Instance()->TimerStart();
         delete(sApi);
         sApi = new tApi();
+        sApi->IsUndoActif(true);
         cout << "After Api clear  -> "; MemoryUses();
         cout << "Elapsed Time " << ElapsedSec() << " s" << endl;
 

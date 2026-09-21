@@ -73,7 +73,8 @@ namespace SkSpreadSheet {
 		m_Application->ClearUndoRedo();
         RegisterCellClassUnit();
         InstallCellClassModelStubHandler();
-        IsUndoActif(true);
+        // Batch clients (Python, Excel import) skip the undo stack unless they opt in.
+        IsUndoActif(false);
 	}
 
 	tApi::~tApi() {
@@ -118,6 +119,12 @@ namespace SkSpreadSheet {
         tBool wOk = false;
         if (tUndoSpreadSheet* wSpreadSheetUndo = dynamic_cast<tUndoSpreadSheet*>(sUndo)) {
             wOk = DispatchSpreadSheetDo(m_Application->UndoRedoContainer(), wSpreadSheetUndo);
+            // Batch clients (Python, Excel import) keep applying but drop history
+            // so format destructors run on a committed command, not mid-Do().
+            if (wOk && !IsUndoActif()) {
+                tUndo* wDropped = m_Application->UndoRedoContainer()->DetachLastUndo();
+                delete(wDropped);
+            }
         } else {
             wOk = m_Application->Do(sUndo);
         }

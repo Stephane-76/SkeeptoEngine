@@ -69,6 +69,7 @@ void TestSkJson::Fill() {
 
 void TestSkJson::Write() {
 	m_Api = new tApi;
+	m_Api->IsUndoActif(true);
 	m_Api->NewWorkBook("wwww.skeema.fr/json");
 	Fill();
  
@@ -92,6 +93,7 @@ void TestSkJson::Write() {
 void TestSkJson::Read() {
 	std::filesystem::remove_all("./Spreadsheet");
 	m_Api = new tApi;
+	m_Api->IsUndoActif(true);
 
 	tFile wFile("Test.json");
 	tString wJson = wFile.LoadString();
@@ -112,6 +114,7 @@ void TestSkJson::Read() {
 
 void TestSkJson::ReadMultiSheet() {
     m_Api = new tApi;
+    m_Api->IsUndoActif(true);
     m_Api->AddWorkBook("Test1");
     m_Api->AddSheet("Sheet1");
     Fill();
@@ -145,6 +148,7 @@ void TestSkJson::ReadMultiSheet() {
 
 void TestSkJson::Excel() {
     m_Api = new tApi;
+    m_Api->IsUndoActif(true);
 #ifdef SKER_FILE_DIR
     tString wFileName = tString(SKER_FILE_DIR) + "/Budget.sker";
 #else

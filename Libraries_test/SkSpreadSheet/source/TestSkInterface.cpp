@@ -90,8 +90,11 @@ void TestSkInterface::InitInterface() {
     m_User2 = new tTestUser(m_User2Str);
     // Interface
     m_InterfaceServer = new tInterfaceWeb(m_UserServerStr,m_WorkBookUri+m_UserServerStr);;
+    m_InterfaceServer->IsUndoActif(true);
     m_InterfaceUser1 = new tInterfaceWeb(m_User1Str,m_WorkBookUri+m_User1Str);
+    m_InterfaceUser1->IsUndoActif(true);
     m_InterfaceUser2 = new tInterfaceWeb(m_User2Str,m_WorkBookUri+m_User2Str);
+    m_InterfaceUser2->IsUndoActif(true);
 
     m_InterfaceServer->NewWorkBook(m_WorkBookUri+m_UserServerStr);
     m_InterfaceUser1->NewWorkBook(m_WorkBookUri+m_User1Str);

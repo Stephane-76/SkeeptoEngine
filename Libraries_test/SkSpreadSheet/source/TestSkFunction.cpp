@@ -3134,15 +3134,30 @@ void TestSkFunction::TestFunctionText() {
     wVariant = m_Api->CellValue("A1");
     CPPUNIT_ASSERT_EQUAL(tString("{1,2}"), wVariant.String());
 
-    // Test TEXT function
+    // Test TEXT function (locale is US from FIXED/DOLLAR above)
     m_Api->UndoCellValue("A1", "=TEXT(123.456,\"0.00\")");
     wVariant = m_Api->CellValue("A1");
-    // TEXT converts number to string (format is simplified for now)
-    CPPUNIT_ASSERT(wVariant.Type() == tVariantType::t_string);
-    
+    CPPUNIT_ASSERT_EQUAL(tString("123.46"), wVariant.String());
+
     m_Api->UndoCellValue("A2", "=TEXT(100,\"#,##0\")");
     wVariant = m_Api->CellValue("A2");
-    CPPUNIT_ASSERT(wVariant.Type() == tVariantType::t_string);
+    CPPUNIT_ASSERT_EQUAL(tString("100"), wVariant.String());
+
+    m_Api->UndoCellValue("A1", "=TEXT(1234.5,\"#,##0.00\")");
+    wVariant = m_Api->CellValue("A1");
+    CPPUNIT_ASSERT_EQUAL(tString("1,234.50"), wVariant.String());
+
+    m_Api->UndoCellValue("A1", "=TEXT(0.125,\"0.00%\")");
+    wVariant = m_Api->CellValue("A1");
+    CPPUNIT_ASSERT_EQUAL(tString("12.50%"), wVariant.String());
+
+    m_Api->UndoCellValue("A1", "=TEXT(DATE(2026,9,21),\"mm/dd/yyyy\")");
+    wVariant = m_Api->CellValue("A1");
+    CPPUNIT_ASSERT_EQUAL(tString("09/21/2026"), wVariant.String());
+
+    m_Api->UndoCellValue("A1", "=TEXT(DATE(2026,9,21),\"yyyy-mm-dd\")");
+    wVariant = m_Api->CellValue("A1");
+    CPPUNIT_ASSERT_EQUAL(tString("2026-09-21"), wVariant.String());
     
     // Test French locale
     tApplication::Instance()->Locale("fr");
@@ -3405,6 +3420,7 @@ void TestSkFunction::setUp() {
     m_Application = tApplication::Instance();
 
     m_Api = new tApi;
+    m_Api->IsUndoActif(true);
     m_Api->NewWorkBook("wwww.skeema.fr/w1");
     m_Application->Locale()->Lang("us");
 }

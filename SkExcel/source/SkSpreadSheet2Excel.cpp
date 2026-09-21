@@ -16,7 +16,10 @@
 #include <SkApplication.hpp>
 #include <SkCellClassAttribute.hpp>
 #include <SkCellClassContainer.hpp>
+#include <SkCell.hpp>
+#include <SkFloatingObject.hpp>
 #include <SkRangeRefTransform.hpp>
+#include "SkExcelChartImport.hpp"
 #include <pugixml.hpp>
 #include <zip.h>
 
@@ -388,6 +391,22 @@ struct BorderSpec { BorderSideSpec left,right,top,bottom; };
             tBool markers = true;
         };
         std::vector<tSparklineExport> m_Sparklines;
+
+        struct tChartExport {
+            tString type;          // bar, line, area, pie
+            tString title;
+            tString categoryRef;   // Excel formula, e.g. Fonctions!$A$3:$A$5
+            tString valueRef;
+            tString seriesName;
+            tString barDirection;  // vertical (col) or horizontal (bar)
+            tInt fromCol = 0;      // 0-based drawing anchor
+            tInt fromRow = 0;
+            tInt colOffEmu = 0;
+            tInt rowOffEmu = 0;
+            tInt cxEmu = 4381500;
+            tInt cyEmu = 2667000;
+        };
+        std::vector<tChartExport> m_Charts;
     };
 
     struct TableColumnExport {
@@ -1074,6 +1093,43 @@ tBool SkExcel::WorkbookBuilder::AddSparkline(const tString& sCell, const tString
     return true;
 }
 
+tBool SkExcel::WorkbookBuilder::AddChart(const tString& sType, const tString& sTitle,
+                                         const tString& sCategoryRef, const tString& sValueRef,
+                                         const tString& sSeriesName, tInt sFromCol, tInt sFromRow,
+                                         tInt sColOffEmu, tInt sRowOffEmu, tInt sCxEmu, tInt sCyEmu,
+                                         const tString& sBarDirection) {
+    std::lock_guard<std::mutex> lock(m_Impl->mutex_);
+    if (sCategoryRef.empty() || sValueRef.empty()) {
+        return false;
+    }
+    auto wIt = m_Impl->m_MapSheets.find(m_Impl->m_CurrentSheet);
+    if (wIt == m_Impl->m_MapSheets.end()) {
+        return false;
+    }
+    tString wType = sType;
+    for (char& wCh : wType) {
+        wCh = static_cast<char>(std::tolower(static_cast<unsigned char>(wCh)));
+    }
+    if (wType != "bar" && wType != "line" && wType != "area" && wType != "pie") {
+        wType = "bar";
+    }
+    Impl::tSheetData::tChartExport wChart;
+    wChart.type = wType;
+    wChart.title = sTitle;
+    wChart.categoryRef = sCategoryRef;
+    wChart.valueRef = sValueRef;
+    wChart.seriesName = sSeriesName.empty() ? sTitle : sSeriesName;
+    wChart.barDirection = (sBarDirection == "horizontal") ? "horizontal" : "vertical";
+    wChart.fromCol = sFromCol < 0 ? 0 : sFromCol;
+    wChart.fromRow = sFromRow < 0 ? 0 : sFromRow;
+    wChart.colOffEmu = sColOffEmu < 0 ? 0 : sColOffEmu;
+    wChart.rowOffEmu = sRowOffEmu < 0 ? 0 : sRowOffEmu;
+    wChart.cxEmu = sCxEmu > 0 ? sCxEmu : 4381500;
+    wChart.cyEmu = sCyEmu > 0 ? sCyEmu : 2667000;
+    wIt->second.m_Charts.push_back(std::move(wChart));
+    return true;
+}
+
 tBool SkExcel::WorkbookBuilder::Clear() {
     std::lock_guard<std::mutex> lock(m_Impl->mutex_);
     m_Impl->m_MapSheets.clear();
@@ -1324,6 +1380,91 @@ tDouble SkExcel::WorkbookBuilder::Impl::date_to_excel_serial(tInt sYear, tInt sM
 
 static void AppendDxfFromTableStyleCss(pugi::xml_node& sDxf, const tString& sCss);
 
+static tBool WriteChartSpaceXml(const std::filesystem::path& sPath, const tString& sType,
+                                const tString& sTitle, const tString& sCategoryRef,
+                                const tString& sValueRef, const tString& sSeriesName,
+                                const tString& sBarDirection) {
+    pugi::xml_document wDoc;
+    auto wSpace = wDoc.append_child("c:chartSpace");
+    wSpace.append_attribute("xmlns:c").set_value(
+        "http://schemas.openxmlformats.org/drawingml/2006/chart");
+    wSpace.append_attribute("xmlns:a").set_value(
+        "http://schemas.openxmlformats.org/drawingml/2006/main");
+    wSpace.append_attribute("xmlns:r").set_value(
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+    auto wChart = wSpace.append_child("c:chart");
+    if (!sTitle.empty()) {
+        auto wTitle = wChart.append_child("c:title");
+        auto wTx = wTitle.append_child("c:tx");
+        auto wRich = wTx.append_child("c:rich");
+        wRich.append_child("a:bodyPr");
+        wRich.append_child("a:lstStyle");
+        auto wP = wRich.append_child("a:p");
+        auto wR = wP.append_child("a:r");
+        auto wRPr = wR.append_child("a:rPr");
+        wRPr.append_attribute("lang").set_value("en-US");
+        wRPr.append_attribute("sz").set_value("1400");
+        wRPr.append_attribute("b").set_value("1");
+        wR.append_child("a:t").text().set(sTitle.c_str());
+        wTitle.append_child("c:overlay").append_attribute("val").set_value("0");
+    }
+    auto wPlot = wChart.append_child("c:plotArea");
+    wPlot.append_child("c:layout");
+    const tBool wIsPie = (sType == "pie");
+    tString wChartTag = "c:barChart";
+    if (sType == "line") {
+        wChartTag = "c:lineChart";
+    } else if (sType == "area") {
+        wChartTag = "c:areaChart";
+    } else if (wIsPie) {
+        wChartTag = "c:pieChart";
+    }
+    auto wSeriesParent = wPlot.append_child(wChartTag.c_str());
+    if (sType == "bar") {
+        auto wBarDir = wSeriesParent.append_child("c:barDir");
+        wBarDir.append_attribute("val").set_value(
+            (sBarDirection == "horizontal") ? "bar" : "col");
+        wSeriesParent.append_child("c:grouping").append_attribute("val").set_value("clustered");
+    } else if (sType == "line" || sType == "area") {
+        wSeriesParent.append_child("c:grouping").append_attribute("val").set_value("standard");
+    }
+    auto wSer = wSeriesParent.append_child("c:ser");
+    wSer.append_child("c:idx").append_attribute("val").set_value("0");
+    wSer.append_child("c:order").append_attribute("val").set_value("0");
+    if (!sSeriesName.empty()) {
+        auto wTx = wSer.append_child("c:tx");
+        wTx.append_child("c:v").text().set(sSeriesName.c_str());
+    }
+    auto wCat = wSer.append_child("c:cat");
+    auto wStrRef = wCat.append_child("c:strRef");
+    wStrRef.append_child("c:f").text().set(sCategoryRef.c_str());
+    auto wVal = wSer.append_child("c:val");
+    auto wNumRef = wVal.append_child("c:numRef");
+    wNumRef.append_child("c:f").text().set(sValueRef.c_str());
+    if (!wIsPie) {
+        wSeriesParent.append_child("c:axId").append_attribute("val").set_value("1");
+        wSeriesParent.append_child("c:axId").append_attribute("val").set_value("2");
+        auto wCatAx = wPlot.append_child("c:catAx");
+        wCatAx.append_child("c:axId").append_attribute("val").set_value("1");
+        wCatAx.append_child("c:scaling").append_child("c:orientation").append_attribute("val").set_value("minMax");
+        wCatAx.append_child("c:delete").append_attribute("val").set_value("0");
+        wCatAx.append_child("c:axPos").append_attribute("val").set_value(
+            (sBarDirection == "horizontal") ? "l" : "b");
+        wCatAx.append_child("c:crossAx").append_attribute("val").set_value("2");
+        auto wValAx = wPlot.append_child("c:valAx");
+        wValAx.append_child("c:axId").append_attribute("val").set_value("2");
+        wValAx.append_child("c:scaling").append_child("c:orientation").append_attribute("val").set_value("minMax");
+        wValAx.append_child("c:delete").append_attribute("val").set_value("0");
+        wValAx.append_child("c:axPos").append_attribute("val").set_value(
+            (sBarDirection == "horizontal") ? "b" : "l");
+        wValAx.append_child("c:crossAx").append_attribute("val").set_value("1");
+        wValAx.append_child("c:majorGridlines");
+    }
+    wChart.append_child("c:legend").append_child("c:legendPos").append_attribute("val").set_value("b");
+    wChart.append_child("c:plotVisOnly").append_attribute("val").set_value("1");
+    return write_text_file(sPath, to_string_xml(wDoc));
+}
+
 tBool SkExcel::WorkbookBuilder::Impl::build_ooxml_minimal(const std::filesystem::path& sRoot) {
     //using tString;
 	std::error_code wErrorCode;
@@ -1409,6 +1550,28 @@ tBool SkExcel::WorkbookBuilder::Impl::build_ooxml_minimal(const std::filesystem:
                 ("/xl/tables/table" + std::to_string(wTableIdx + 1) + ".xml").c_str());
             wOt.append_attribute("ContentType").set_value(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml");
+        }
+        {
+            tInt wChartPart = 1;
+            tInt wSheetIdx = 1;
+            for (const tString& wSheetName : this->m_SheetOrder) {
+                auto wIt = this->m_MapSheets.find(wSheetName);
+                if (wIt != this->m_MapSheets.end() && !wIt->second.m_Charts.empty()) {
+                    auto wOd = wTypes.append_child("Override");
+                    wOd.append_attribute("PartName").set_value(
+                        ("/xl/drawings/drawing" + std::to_string(wSheetIdx) + ".xml").c_str());
+                    wOd.append_attribute("ContentType").set_value(
+                        "application/vnd.openxmlformats-officedocument.drawing+xml");
+                    for (tSize wCi = 0; wCi < wIt->second.m_Charts.size(); ++wCi) {
+                        auto wOc = wTypes.append_child("Override");
+                        wOc.append_attribute("PartName").set_value(
+                            ("/xl/charts/chart" + std::to_string(wChartPart++) + ".xml").c_str());
+                        wOc.append_attribute("ContentType").set_value(
+                            "application/vnd.openxmlformats-officedocument.drawingml.chart+xml");
+                    }
+                }
+                ++wSheetIdx;
+            }
         }
 		if (!write_text_file(sRoot / "[Content_Types].xml", to_string_xml(wDoc))) return false;
 	}
@@ -2005,6 +2168,7 @@ tBool SkExcel::WorkbookBuilder::Impl::build_ooxml_minimal(const std::filesystem:
 
     // 7) Generate all worksheets
     tInt wSheetIndex = 1;
+    tInt wNextChartPart = 1;
     const tSize wSheetTotal = this->m_SheetOrder.size();
     for (const tString& wSheetName : this->m_SheetOrder) {
         // Worksheet generation is the bulk of export: map it onto 10..90%.
@@ -2423,6 +2587,14 @@ tBool SkExcel::WorkbookBuilder::Impl::build_ooxml_minimal(const std::filesystem:
                 wSheetTableIndices.push_back(wTableIdx);
             }
         }
+        const tBool wSheetHasCharts = !wSheetData.m_Charts.empty();
+        tInt wDrawingRelId = 0;
+        if (wSheetHasCharts) {
+            wDrawingRelId = static_cast<tInt>(wSheetTableIndices.size()) + 1;
+            auto wDrawing = ws.append_child("drawing");
+            wDrawing.append_attribute("r:id").set_value(
+                ("rId" + std::to_string(wDrawingRelId)).c_str());
+        }
         if (!wSheetTableIndices.empty()) {
             auto wTableParts = ws.append_child("tableParts");
             wTableParts.append_attribute("count").set_value(
@@ -2432,6 +2604,8 @@ tBool SkExcel::WorkbookBuilder::Impl::build_ooxml_minimal(const std::filesystem:
                 wTablePart.append_attribute("r:id").set_value(
                     ("rId" + std::to_string(wLocalIdx + 1)).c_str());
             }
+        }
+        if (!wSheetTableIndices.empty() || wSheetHasCharts) {
             pugi::xml_document wSheetRelsDoc;
             auto wSheetRels = wSheetRelsDoc.append_child("Relationships");
             wSheetRels.append_attribute("xmlns").set_value(
@@ -2446,9 +2620,97 @@ tBool SkExcel::WorkbookBuilder::Impl::build_ooxml_minimal(const std::filesystem:
                 wRel.append_attribute("Target").set_value(
                     ("../tables/table" + std::to_string(wGlobalTableIdx + 1) + ".xml").c_str());
             }
+            if (wSheetHasCharts) {
+                auto wRel = wSheetRels.append_child("Relationship");
+                wRel.append_attribute("Id").set_value(
+                    ("rId" + std::to_string(wDrawingRelId)).c_str());
+                wRel.append_attribute("Type").set_value(
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing");
+                wRel.append_attribute("Target").set_value(
+                    ("../drawings/drawing" + std::to_string(wSheetIndex) + ".xml").c_str());
+            }
             const tString wSheetRelsPath =
                 "xl/worksheets/_rels/sheet" + std::to_string(wSheetIndex) + ".xml.rels";
             if (!write_text_file(sRoot / wSheetRelsPath, to_string_xml(wSheetRelsDoc))) {
+                return false;
+            }
+        }
+
+        if (wSheetHasCharts) {
+            pugi::xml_document wDrawingDoc;
+            auto wWsDr = wDrawingDoc.append_child("xdr:wsDr");
+            wWsDr.append_attribute("xmlns:xdr").set_value(
+                "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing");
+            wWsDr.append_attribute("xmlns:a").set_value(
+                "http://schemas.openxmlformats.org/drawingml/2006/main");
+            pugi::xml_document wDrawingRelsDoc;
+            auto wDrawingRels = wDrawingRelsDoc.append_child("Relationships");
+            wDrawingRels.append_attribute("xmlns").set_value(
+                "http://schemas.openxmlformats.org/package/2006/relationships");
+            tInt wLocalChart = 1;
+            for (const auto& wChart : wSheetData.m_Charts) {
+                const tInt wChartPart = wNextChartPart++;
+                if (!WriteChartSpaceXml(
+                        sRoot / ("xl/charts/chart" + std::to_string(wChartPart) + ".xml"),
+                        wChart.type, wChart.title, wChart.categoryRef, wChart.valueRef,
+                        wChart.seriesName, wChart.barDirection)) {
+                    return false;
+                }
+                auto wRel = wDrawingRels.append_child("Relationship");
+                wRel.append_attribute("Id").set_value(
+                    ("rId" + std::to_string(wLocalChart)).c_str());
+                wRel.append_attribute("Type").set_value(
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart");
+                wRel.append_attribute("Target").set_value(
+                    ("../charts/chart" + std::to_string(wChartPart) + ".xml").c_str());
+
+                auto wAnchor = wWsDr.append_child("xdr:oneCellAnchor");
+                auto wFrom = wAnchor.append_child("xdr:from");
+                wFrom.append_child("xdr:col").text().set(std::to_string(wChart.fromCol).c_str());
+                wFrom.append_child("xdr:colOff").text().set(std::to_string(wChart.colOffEmu).c_str());
+                wFrom.append_child("xdr:row").text().set(std::to_string(wChart.fromRow).c_str());
+                wFrom.append_child("xdr:rowOff").text().set(std::to_string(wChart.rowOffEmu).c_str());
+                auto wExt = wAnchor.append_child("xdr:ext");
+                wExt.append_attribute("cx").set_value(std::to_string(wChart.cxEmu).c_str());
+                wExt.append_attribute("cy").set_value(std::to_string(wChart.cyEmu).c_str());
+                auto wFrame = wAnchor.append_child("xdr:graphicFrame");
+                wFrame.append_attribute("macro").set_value("");
+                auto wNv = wFrame.append_child("xdr:nvGraphicFramePr");
+                auto wCNvPr = wNv.append_child("xdr:cNvPr");
+                wCNvPr.append_attribute("id").set_value(std::to_string(wChartPart + 1).c_str());
+                wCNvPr.append_attribute("name").set_value(
+                    ("Chart " + std::to_string(wChartPart)).c_str());
+                auto wCNvGraphic = wNv.append_child("xdr:cNvGraphicFramePr");
+                wCNvGraphic.append_child("a:graphicFrameLocks").append_attribute("noGrp").set_value("1");
+                auto wXfrm = wFrame.append_child("xdr:xfrm");
+                auto wOff = wXfrm.append_child("a:off");
+                wOff.append_attribute("x").set_value("0");
+                wOff.append_attribute("y").set_value("0");
+                auto wXfrmExt = wXfrm.append_child("a:ext");
+                wXfrmExt.append_attribute("cx").set_value(std::to_string(wChart.cxEmu).c_str());
+                wXfrmExt.append_attribute("cy").set_value(std::to_string(wChart.cyEmu).c_str());
+                auto wGraphic = wFrame.append_child("a:graphic");
+                auto wGd = wGraphic.append_child("a:graphicData");
+                wGd.append_attribute("uri").set_value(
+                    "http://schemas.openxmlformats.org/drawingml/2006/chart");
+                auto wCChart = wGd.append_child("c:chart");
+                wCChart.append_attribute("xmlns:c").set_value(
+                    "http://schemas.openxmlformats.org/drawingml/2006/chart");
+                wCChart.append_attribute("xmlns:r").set_value(
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                wCChart.append_attribute("r:id").set_value(
+                    ("rId" + std::to_string(wLocalChart)).c_str());
+                wAnchor.append_child("xdr:clientData");
+                ++wLocalChart;
+            }
+            if (!write_text_file(
+                    sRoot / ("xl/drawings/drawing" + std::to_string(wSheetIndex) + ".xml"),
+                    to_string_xml(wDrawingDoc))) {
+                return false;
+            }
+            if (!write_text_file(
+                    sRoot / ("xl/drawings/_rels/drawing" + std::to_string(wSheetIndex) + ".xml.rels"),
+                    to_string_xml(wDrawingRelsDoc))) {
                 return false;
             }
         }
@@ -2512,21 +2774,27 @@ tBool SkExcel::WorkbookBuilder::Impl::build_ooxml_minimal(const std::filesystem:
 	return true;
 }
 
-// Normalize color string to ARGB 8 hex chars without '#'. Accepts #RRGGBB or #AARRGGBB
+// Normalize color string to ARGB 8 hex chars without '#'. Accepts #RRGGBB or #AARRGGBB.
+// Named CSS colors (yellow, orange, …) are 6 letters and must NOT be treated as hex.
 tBool normalize_hex_to_argb(const tString& sInput, tString& sOutARGB) {
 	if (sInput.empty()) return false;
 	tString wInput = sInput;
 	if (wInput[0] == '#') wInput = wInput.substr(1);
-	for (char& ch : wInput) ch = (char)std::toupper((unsigned char)ch);
+	if (wInput.size() != 6 && wInput.size() != 8) {
+		return false;
+	}
+	for (char& ch : wInput) {
+		ch = (char)std::toupper((unsigned char)ch);
+		if (!std::isxdigit(static_cast<unsigned char>(ch))) {
+			return false;
+		}
+	}
 	if (wInput.size() == 6) {
-		// RRGGBB -> AARRGGBB with AA=FF
 		sOutARGB = tString("FF") + wInput;
 		return true;
-	} else if (wInput.size() == 8) {
-		sOutARGB = wInput;
- 	return true;
 	}
-	return false;
+	sOutARGB = wInput;
+	return true;
 }
 
 // Validate and normalize border style to Excel-compatible values
@@ -2914,6 +3182,10 @@ static tBool CssPropertyKeyAt(const tString& sCss, tSize sPos, const tString& sK
     if (sCss[sPos + sKey.size()] != ':') {
         return false;
     }
+    // "color" must not match inside "background-color" / "border-*-color".
+    if (sKey == "color" && sPos > 0 && sCss[sPos - 1] == '-') {
+        return false;
+    }
     if (sKey == "font" && sPos + 4 < sCss.size() && sCss[sPos + 4] == '-') {
         return false;
     }
@@ -3007,6 +3279,7 @@ static tString CssColorNameToHexRgb(const tString& sLowerName) {
         {"red", "FF0000"},
         {"green", "008000"},
         {"blue", "0000FF"},
+        {"navy", "000080"},
         {"yellow", "FFFF00"},
         {"gray", "808080"},
         {"grey", "808080"},
@@ -4727,6 +5000,168 @@ static void ExportSparklines(tSheet* sSheet, WorkbookBuilder& sWorkbook) {
     }
 }
 
+static tInt PxToEmu(tDouble sPx) {
+    if (sPx <= 0.0) {
+        return 0;
+    }
+    return static_cast<tInt>(std::lround(sPx * 9525.0));
+}
+
+static tString DollarizeA1Token(const tString& sToken) {
+    tString wLetters;
+    tString wDigits;
+    for (char wCh : sToken) {
+        if ((wCh >= 'A' && wCh <= 'Z') || (wCh >= 'a' && wCh <= 'z')) {
+            wLetters.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(wCh))));
+        } else if (wCh >= '0' && wCh <= '9') {
+            wDigits.push_back(wCh);
+        }
+    }
+    if (wLetters.empty() || wDigits.empty()) {
+        return sToken;
+    }
+    return tString("$") + wLetters + "$" + wDigits;
+}
+
+static tString DollarizeA1Range(const tString& sCells) {
+    const tSize wColon = sCells.find(':');
+    if (wColon == tString::npos) {
+        return DollarizeA1Token(sCells);
+    }
+    return DollarizeA1Token(sCells.substr(0, wColon)) + ":"
+        + DollarizeA1Token(sCells.substr(wColon + 1));
+}
+
+static tString ExcelAbsChartRef(const tString& sSheetName, tString sRaw) {
+    tString wRange = SparklineSourceFromDataRange(std::move(sRaw));
+    if (wRange.empty()) {
+        return "";
+    }
+    tString wSheet = sSheetName;
+    tString wCells = wRange;
+    tSize wBang = wRange.find('!');
+    if (wBang == tString::npos) {
+        tString wQualified = QualifyRefsForSheet(sSheetName, tString("=") + wRange);
+        if (!wQualified.empty() && wQualified.front() == '=') {
+            wQualified.erase(wQualified.begin());
+        }
+        if (!wQualified.empty()) {
+            wRange = wQualified;
+            wBang = wRange.find('!');
+        }
+    }
+    if (wBang != tString::npos) {
+        wSheet = wRange.substr(0, wBang);
+        wCells = wRange.substr(wBang + 1);
+        if (!wSheet.empty() && wSheet.front() == '\'') {
+            wSheet.erase(wSheet.begin());
+        }
+        if (!wSheet.empty() && wSheet.back() == '\'') {
+            wSheet.pop_back();
+        }
+    }
+    return ChartImport::FormatSheetRangePrefix(wSheet) + DollarizeA1Range(wCells);
+}
+
+static tString FloatingAttrText(tCellClassAttribute* sClass, const char* sName) {
+    if (sClass == nullptr) {
+        return "";
+    }
+    tCellAttribute* wAttr = sClass->Find(sName);
+    if (wAttr == nullptr) {
+        wAttr = sClass->CellAttribute(sName);
+    }
+    if (wAttr == nullptr) {
+        return "";
+    }
+    tString wFormula = wAttr->FormulaWire(false, false);
+    if (wFormula.empty()) {
+        wFormula = wAttr->FormulaStr(false, false);
+    }
+    if (wFormula.empty()) {
+        wFormula = wAttr->Value().Str();
+    }
+    return wFormula;
+}
+
+static void ExportFloatingCharts(tWorkBook* sWorkBook, tSheet* sSheet,
+                                 WorkbookBuilder& sWorkbook) {
+    if (sWorkBook == nullptr || sSheet == nullptr) {
+        return;
+    }
+    tFloatingObjectContainer* wContainer = sWorkBook->FloatingObjectContainer();
+    if (wContainer == nullptr) {
+        return;
+    }
+    std::vector<tString> wNames;
+    wContainer->NamesOnSheet(sSheet->IndexAllocatorColRowCellRange(), wNames);
+    for (const tString& wName : wNames) {
+        tFloatingObject* wObject = wContainer->ByName(wName);
+        if (wObject == nullptr) {
+            continue;
+        }
+        const tString wClassName = wObject->ClassName();
+        const tBool wIsPie = (wClassName == "SkCellClassPieChart");
+        const tBool wIsLine = (wClassName == "SkCellClassLineChart");
+        if (!wIsPie && !wIsLine) {
+            continue;
+        }
+        tCell* wHost = wObject->HostCell();
+        tCellClassAttribute* wClass = (wHost != nullptr) ? wHost->ClassAttribute() : nullptr;
+        tString wCats = FloatingAttrText(wClass, "chartData");
+        tString wVals = FloatingAttrText(wClass, "DataRange");
+        if (wCats.empty() || wVals.empty()) {
+            continue;
+        }
+        tString wCatRef = ExcelAbsChartRef(sSheet->Name(), wCats);
+        tString wValRef = ExcelAbsChartRef(sSheet->Name(), wVals);
+        if (wCatRef.empty() || wValRef.empty()) {
+            continue;
+        }
+        tString wType = wIsPie ? "pie" : FloatingAttrText(wClass, "chartType");
+        for (char& wCh : wType) {
+            wCh = static_cast<char>(std::tolower(static_cast<unsigned char>(wCh)));
+        }
+        if (wType != "bar" && wType != "line" && wType != "area" && wType != "pie") {
+            wType = wIsPie ? "pie" : "bar";
+        }
+        tString wTitle = FloatingAttrText(wClass, "Title");
+        tString wSeries = FloatingAttrText(wClass, "seriesLabels");
+        if (wSeries.find('!') != tString::npos || wSeries.find(':') != tString::npos) {
+            wSeries = wTitle;
+        }
+        if (wSeries.empty()) {
+            wSeries = wTitle.empty() ? wObject->Name() : wTitle;
+        }
+        tString wBarDir = FloatingAttrText(wClass, "barDirection");
+        const tFloatingObjectLayout& wLayout = wObject->Layout();
+        tInt wFromCol = 5;
+        tInt wFromRow = 1;
+        tCell* wAnchor = wLayout.AnchorCell(sWorkBook);
+        if (wAnchor != nullptr) {
+            const tIndex wCol = wAnchor->ColIndex();
+            const tIndex wRow = wAnchor->RowIndex();
+            if (wCol > 0) {
+                wFromCol = static_cast<tInt>(wCol) - 1;
+            }
+            if (wRow > 0) {
+                wFromRow = static_cast<tInt>(wRow) - 1;
+            }
+        }
+        tInt wCx = PxToEmu(wLayout.Width());
+        tInt wCy = PxToEmu(wLayout.Height());
+        if (wCx <= 0) {
+            wCx = 4381500;
+        }
+        if (wCy <= 0) {
+            wCy = 2667000;
+        }
+        sWorkbook.AddChart(wType, wTitle, wCatRef, wValRef, wSeries, wFromCol, wFromRow,
+                           PxToEmu(wLayout.DiffX()), PxToEmu(wLayout.DiffY()), wCx, wCy,
+                           wBarDir);
+    }
+}
+
 tBool ExportApiToXlsx(tApi& sApi, const tString& sOutputPath) {
     tWorkBook* wWorkBook = sApi.ActiveWorkBook();
     if (wWorkBook == nullptr) {
@@ -4763,6 +5198,7 @@ tBool ExportApiToXlsx(tApi& sApi, const tString& sOutputPath) {
         ExportMergedRanges(wSheet, *wWorkbook);
         ExportConditionalFormats(wSheet, *wWorkbook);
         ExportSparklines(wSheet, *wWorkbook);
+        ExportFloatingCharts(wWorkBook, wSheet, *wWorkbook);
 
         const tIndex wLastRow = wSheet->LastRow();
         const tIndex wLastCol = wSheet->LastCol();
