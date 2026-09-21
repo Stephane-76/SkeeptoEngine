@@ -98,6 +98,7 @@ The graph lives in `Libraries/SkSpreadSheet/source/SkCalculationPath.cpp`.
 skeepto-engine/
 ├── CMakeLists.txt              # superbuild (configure once, build everything)
 ├── cmake/                      # Emscripten, third-party, wasm flags
+├── docs/                       # coding conventions and other notes
 ├── File/                       # workbook fixtures for a complete native test run
 ├── Libraries/
 │   ├── SkRoot/                 # variants, dates, files, containers
@@ -237,6 +238,12 @@ pair aborts at runtime.
 
 `SkExcel.js` / `SkExcelLib.js` (`.xlsx` import **and** export) and
 `SkPressureSp.js` (stress tool) land in the same `wasm/bin/` tree.
+
+## Coding conventions
+
+C++ naming (`s` = stack, `w` = work, `m_` members, `t` types) and the boxed
+types from `SkTypes.hpp` / `SkTypesClass.hpp` are documented in
+[`docs/Cpp-Conventions.md`](./docs/Cpp-Conventions.md).
 
 ## License
 

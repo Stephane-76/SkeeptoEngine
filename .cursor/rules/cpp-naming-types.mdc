@@ -1,5 +1,5 @@
 ---
-description: C++ naming prefixes (w/s/m_/o/t) and SkTypes / SkTypeClass boxing in skeepto-engine
+description: C++ naming prefixes (s=stack, w=work, m_, t) and SkTypes / SkTypeClass boxing in skeepto-engine
 alwaysApply: true
 ---
 
@@ -12,20 +12,21 @@ Code lives in `namespace SkRoot`. Files are `Sk*.hpp` / `Sk*.cpp`. C++ types are
 | Prefix | Role | Examples |
 |--------|------|----------|
 | `t` | Types, classes, enums, typedefs | `tInt`, `tString`, `tClassInt`, `tVariant` |
-| `s` | Function **parameters** (in) | `sValue`, `sFormatString`, `sClassInt` |
-| `w` | **Local** (working) variables | `wStream`, `wResult`, `wIndex` |
+| `s` | **Stack** — all function parameters (in and out) | `sValue`, `sFormatString`, `sOut` |
+| `w` | **Work** — local variables | `wStream`, `wResult`, `wIndex` |
 | `m_` | Class **members** | `m_Value`, `m_Type` |
-| `o` | **Output** parameters | `oOut`, `oDate`, `oError` |
 | `c` / `k` | Constants | `cSlash`, `kEncodeTable` |
+
+Never use an `o` prefix. An output parameter is still stack: `tString& sOut`, not `oOut`.
 
 Method **names** are PascalCase (`Encode`, `IsNumber`). Do **not** prefix them with `s`. A parameter named after its type drops the `t`: `const tVariant& sVariant`.
 
 ```cpp
-tString Foo(const tString& sName, tSize sSize, tString& oOut) {
+tString Foo(const tString& sName, tSize sSize, tString& sOut) {
     tString wResult;
     tSize wIndex = 0;
     // ...
-    oOut = wResult;
+    sOut = wResult;
     return wResult;
 }
 ```
