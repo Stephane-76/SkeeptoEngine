@@ -7,22 +7,25 @@
 [![Functions](https://img.shields.io/badge/worksheet%20functions-344-2ea44f)](#344-worksheet-functions)
 
 **A C++20 spreadsheet engine built to outrun Excel.** Same sources, native or
-**WebAssembly** — browser and Node.js. Used by [Skeepto](https://github.com/Stephane-76/Skeepto).
+**WebAssembly** — browser and Node.js. Used by [Skeepto](https://github.com/Stephane-76/Skeepto)
+and by [Skeepto Python](https://github.com/Stephane-76/SkeeptoPython) (native
+`.xlsx` client, not pandas).
 
 Excel is a desktop product. This is a **calculation core**: sparse cells,
 index-based rows and columns, shared formulas, incremental recalc. Inserting
 or deleting a row does not rewrite every address. Large workbooks stay
 responsive where Excel stalls.
 
-Drive it with a **clear API** (`tApi` in C++, `UISpreadSheet` in JavaScript) —
-workbooks, cells, formulas, format, undo, JSON. No COM, no VBA, no opaque
-add-in. The same 344 worksheet functions run in the grid, in a headless
-server, and under an agent.
+Drive it with a **clear API** (`tApi` in C++, `UISpreadSheet` in JavaScript,
+`SpreadSheet` in Python) — workbooks, cells, formulas, format, undo, JSON.
+No COM, no VBA, no opaque add-in. The same 344 worksheet functions run in the
+grid, in a headless server, under an agent, and from Python.
 
 This repository is the engine only: libraries, unit tests, the WASM React
 binding (`SkReactSpreadSheet`), the Excel converter (`SkExcel` — **read and
 write** `.xlsx`), and the spreadsheet stress tool (`SkPressureSp`). The UI and
-server live in the Skeepto application repo.
+server live in the Skeepto application repo. The Python package lives in
+[SkeeptoPython](https://github.com/Stephane-76/SkeeptoPython).
 
 ## Why this engine
 
@@ -30,7 +33,7 @@ server live in the Skeepto application repo.
 | --- | --- |
 | **Faster than Excel** | Native C++20, not a JavaScript grid. Recalc is a **Kahn** work-queue on the dirty graph (not a full-sheet sweep). Cycles go through **Tarjan SCC** then **Gauss–Seidel**. Shared formulas are pooled. Insert/delete is index-based. Same binary in the browser (WASM) and on the server. |
 | **344 worksheet functions** | Math, stats, text, logical, lookup, date, financial, and **dynamic arrays** (`FILTER`, `SORT`, `UNIQUE`, `MAP`, `REDUCE`, `SCAN`, `XLOOKUP`, `LET`, …). Excel-compatible names. |
-| **Clear API** | One class to create a workbook, write `A1`, compile `=SUM(A1:A2)`, read the result, format, undo, serialize to JSON. Same surface in C++ and in JavaScript. |
+| **Clear API** | One class to create a workbook, write `A1`, compile `=SUM(A1:A2)`, read the result, format, undo, serialize to JSON. Same surface in C++, JavaScript, and Python. |
 
 ```javascript
 const ss = new SpreadSheet.UISpreadSheet();
