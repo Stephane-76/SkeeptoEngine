@@ -1,0 +1,55 @@
+---
+description: C++ naming prefixes (w/s/m_/o/t) and SkTypes / SkTypeClass boxing in skeepto-engine
+alwaysApply: true
+---
+
+# skeepto-engine — C++ naming and types
+
+Code lives in `namespace SkRoot`. Files are `Sk*.hpp` / `Sk*.cpp`. C++ types are `t…`, not `Sk…`. Comments in American English.
+
+## Prefixes
+
+| Prefix | Role | Examples |
+|--------|------|----------|
+| `t` | Types, classes, enums, typedefs | `tInt`, `tString`, `tClassInt`, `tVariant` |
+| `s` | Function **parameters** (in) | `sValue`, `sFormatString`, `sClassInt` |
+| `w` | **Local** (working) variables | `wStream`, `wResult`, `wIndex` |
+| `m_` | Class **members** | `m_Value`, `m_Type` |
+| `o` | **Output** parameters | `oOut`, `oDate`, `oError` |
+| `c` / `k` | Constants | `cSlash`, `kEncodeTable` |
+
+Method **names** are PascalCase (`Encode`, `IsNumber`). Do **not** prefix them with `s`. A parameter named after its type drops the `t`: `const tVariant& sVariant`.
+
+```cpp
+tString Foo(const tString& sName, tSize sSize, tString& oOut) {
+    tString wResult;
+    tSize wIndex = 0;
+    // ...
+    oOut = wResult;
+    return wResult;
+}
+```
+
+## Types (`Libraries/SkRoot/include/SkTypes.hpp`)
+
+Do **not** use raw `int`, `bool`, `double`, `std::string` in engine code. Use:
+
+`tInt` `tUInt` `tSize` `tShort` `tUShort` `tByte` `tUByte` `tLong` `tLongLong` `tBool` `tFloat` `tDouble` `tChar` `tString` `tDate` `tIndex` `tColor` `tAllocatorRef`
+
+Containers: `tVectorString`, `tVectorInt`, `tVectorSize`, `tStackInt`, `tStringStream`. Macros: `SkMin` `SkMax` `SkAlign` `SkInline`.
+
+Enums are `enum class` with a `t` name; enumerators often use `t_…` (`tVariantType::t_int`, `tTypeError::t_div0`).
+
+## Boxing (`Libraries/SkRoot/include/SkTypesClass.hpp`)
+
+`tClassInt` `tClassFloat` `tClassDouble` `tClassString` `tClassDate` `tClassError` inherit `tClass` (C# boxing). Payload is `m_Value`.
+
+- **Box:** `tClassInt wInt(42);` `tClassString wText("hello");`
+- **Unbox:** `tInt wRaw = wInt();` — `operator()` returns the primitive
+- `Str()` → `tString`; `FormatString(tFormatString*)` formats via `tClassFormatString<T>`
+- Arithmetic / compare operators stay on the boxed type
+- `tClassString`: `Left` `Trim` `Split` `Replace` `IsNumber` `ToInt` `ToDouble` …
+- `tClassDate`: Excel serial days; can construct from `tVariant`
+- `tClassError`: spreadsheet errors (`tTypeError`)
+
+Cell values use `tVariant` (16-byte tagged union: `m_Type`, `m_Extra`, `m_Union`). Setters take `sValue`.
