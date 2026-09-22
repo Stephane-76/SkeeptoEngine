@@ -2456,7 +2456,15 @@ void tExcelPugiXMLReader::DisplayCharts() {
                         pugi::xml_node layout = node.child("c:layout"); if (!layout) layout = node.child("layout");
                         pugi::xml_node manual = layout.child("c:manualLayout"); if (!manual) manual = layout.child("manualLayout");
                         if (!manual) { std::cout << "  " << label << "=(auto layout)" << std::endl; return; }
-                        auto get = [&](const char* n){ pugi::xml_node x = manual.child(n); if (!x) x = manual.child(tString("c:")+n); return x; };
+                        auto get = [&](const char* n) {
+                            pugi::xml_node x = manual.child(n);
+                            if (!x) {
+                                // child() takes const char*. A temporary tString does not convert.
+                                tString wName = tString("c:") + n;
+                                x = manual.child(wName.c_str());
+                            }
+                            return x;
+                        };
                         tString xMode = get("layoutTarget").attribute("val").as_string(""); // inner/outer
                         tDouble x = get("x").attribute("val").as_double(std::numeric_limits<tDouble>::quiet_NaN());
                         tDouble y = get("y").attribute("val").as_double(std::numeric_limits<tDouble>::quiet_NaN());
