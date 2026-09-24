@@ -400,15 +400,55 @@ static tDouble ExcelSerialFromUnixSeconds(long long u) {
             return;
         }
 
-        // Split format string into elements (use English-normalized form: d/y/h/m/s)
+        // Split format string into elements (use English-normalized form: d/y/h/m/s).
+        // CSS import writes each '\' as '\\' inside the quoted format-string. Collapse
+        // those pairs first so Excel '\-' is a literal hyphen, not a visible backslash.
+        tString wFormat;
+        wFormat.reserve(m_NormalizedFormatString.size());
+        for (tSize i = 0; i < m_NormalizedFormatString.size(); ++i) {
+            if (m_NormalizedFormatString[i] == '\\'
+                && i + 1 < m_NormalizedFormatString.size()
+                && m_NormalizedFormatString[i + 1] == '\\') {
+                wFormat += '\\';
+                ++i;
+            } else {
+                wFormat += m_NormalizedFormatString[i];
+            }
+        }
         tString currentElement;
         tInt position = 0;
         
-        for (tSize i = 0; i < m_NormalizedFormatString.length(); ++i) {
-            tChar c = m_NormalizedFormatString[i];
+        for (tSize i = 0; i < wFormat.length(); ++i) {
+            tChar c = wFormat[i];
+            // Excel: '\' makes the next character a literal, so yyyy\-mm\-dd is yyyy-mm-dd.
+            // The escaped char must not stay glued to the previous token or act as a separator.
+            if (c == '\\') {
+                if (!currentElement.empty()) {
+                    ParseElement(currentElement, position);
+                    position += static_cast<SkRoot::tInt>(currentElement.length());
+                    currentElement.clear();
+                }
+                if (i + 1 < wFormat.length()) {
+                    ++i;
+                    tExcelDateElement wLiteral;
+                    wLiteral.m_Element = tString(1, wFormat[i]);
+                    wLiteral.m_Type = "text";
+                    wLiteral.m_Position = position;
+                    wLiteral.m_Length = 1;
+                    wLiteral.m_Width = 1;
+                    wLiteral.m_IsOptional = false;
+                    wLiteral.m_IsLeadingZero = false;
+                    wLiteral.m_IsAbbreviated = false;
+                    wLiteral.m_IsFullName = false;
+                    wLiteral.m_Is24Hour = true;
+                    m_Elements.push_back(wLiteral);
+                    position += 1;
+                }
+                continue;
+            }
             // Handle AM/PM or A/P as atomic tokens before splitting on '/'
-            if (i + 4 < m_NormalizedFormatString.length()) {
-                tString token5 = m_NormalizedFormatString.substr(i, 5);
+            if (i + 4 < wFormat.length()) {
+                tString token5 = wFormat.substr(i, 5);
                 if (token5 == "AM/PM" || token5 == "am/pm") {
                     if (!currentElement.empty()) {
                         ParseElement(currentElement, position);
@@ -421,8 +461,8 @@ static tDouble ExcelSerialFromUnixSeconds(long long u) {
                     continue;
                 }
             }
-            if (i + 2 < m_NormalizedFormatString.length()) {
-                tString token3 = m_NormalizedFormatString.substr(i, 3);
+            if (i + 2 < wFormat.length()) {
+                tString token3 = wFormat.substr(i, 3);
                 if (token3 == "A/P" || token3 == "a/p") {
                     if (!currentElement.empty()) {
                         ParseElement(currentElement, position);

@@ -239,6 +239,17 @@ void TestSkFormatExcel::TestSkFormatExcelDate() {
     wFormatStr = "yyyy-mm-dd";
     wFormattedDate = wDateFormatter->FormatDate(wDate(), wFormatStr);
     CPPUNIT_ASSERT_MESSAGE("Formatted date should be 2023-12-10", wFormattedDate == "2023-12-10");
+
+    // OOXML custom format yyyy\-mm\-dd: backslash escapes the hyphen. Without this,
+    // yyyy\ and mm\ stay literal and only dd is substituted (yyyy\-mm\-10).
+    wFormatStr = "yyyy\\-mm\\-dd";
+    wFormattedDate = wDateFormatter->FormatDate(wDate(), wFormatStr);
+    CPPUNIT_ASSERT_MESSAGE("Escaped hyphen date should be 2023-12-10", wFormattedDate == "2023-12-10");
+
+    // CSS import stores the same mask with each backslash doubled: yyyy\\-mm\\-dd.
+    wFormatStr = "yyyy\\\\-mm\\\\-dd";
+    wFormattedDate = wDateFormatter->FormatDate(wDate(), wFormatStr);
+    CPPUNIT_ASSERT_MESSAGE("CSS-doubled escaped hyphen should be 2023-12-10", wFormattedDate == "2023-12-10");
     
     m_Application->Locale("us");
     wFormatStr = "dd-mmm-yy";
