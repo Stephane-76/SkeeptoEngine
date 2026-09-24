@@ -436,10 +436,15 @@ void TestSkRangeData::TestDeleteColRowCovered() {
     m_Api->Check();
 #endif
 
-   
-	CPPUNIT_ASSERT_MESSAGE("TestDeleteColRowCovered: Range1 should exist after deleting rows 3-4", wRange1 == nullptr);
-	CPPUNIT_ASSERT_MESSAGE("TestDeleteColRowCovered: Range2 should exist after deleting rows 3-4", wRange2 != nullptr);
-	CPPUNIT_ASSERT_MESSAGE("TestDeleteColRowCovered: Range2 should be at A3:B4", wRange2->StrRef(true) == "Sheet1!A1:B1");
+	// Both ranges collapse to A1:B1. Which name is kept follows unordered_map
+	// iteration order (MSVC differs from libc++ / libstdc++).
+	tBool wRange1Gone = (wRange1 == nullptr);
+	tBool wRange2Gone = (wRange2 == nullptr);
+	CPPUNIT_ASSERT_MESSAGE("TestDeleteColRowCovered: exactly one range remains after deleting rows 2-5",
+	                       wRange1Gone != wRange2Gone);
+	tRange* wKept = wRange1Gone ? wRange2 : wRange1;
+	CPPUNIT_ASSERT_MESSAGE("TestDeleteColRowCovered: kept range should be at A1:B1",
+	                       wKept->StrRef(true) == "Sheet1!A1:B1");
     m_Api->Undo();
 	wRange1 = m_Api->FindRangeNamed("RANGE_DATA_1");
 	wRange2 = m_Api->FindRangeNamed("RANGE_DATA_2");
