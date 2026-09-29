@@ -145,7 +145,7 @@ The text `=A1+SUM(B1:B10)` goes through three stages.
 | `tLemonFunctionMethod` | [`SkLemonInterface.hpp`](../Libraries/SkSpreadSheet/include/SkLemonInterface.hpp) | Descriptor of a function call as seen by the parser (name, arity, by-reference). |
 | `tErrorFormula` | [`SkLemonInterface.hpp`](../Libraries/SkSpreadSheet/include/SkLemonInterface.hpp) | Compile-time error family: syntax, function, data, reference, attribute. |
 | `tInterfaceCompil` | [`SkInterfaceCompil.hpp`](../Libraries/SkSpreadSheet/include/SkInterfaceCompil.hpp) | Contract “I can carry a formula”. Implemented by `tCell` and `tConditionalFormat`. |
-| grammar | [`SkLemonSpreadSheet.y`](../Libraries/SkSpreadSheet/lemon/SkLemonSpreadSheet.y) | Lemon grammar. Generated code is `SkLemonSpreadSheet.cpp` / `.h`. |
+| grammar | [`SkLemonSpreadSheet.y`](../Libraries/SkSpreadSheet/lemon/SkLemonSpreadSheet.y) | Lemon grammar. Generated code is `SkLemonSpreadSheet.cpp` / `.h`. How to obtain Lemon: [`Lemon.md`](./Lemon.md). |
 
 ### Representation and sharing
 
