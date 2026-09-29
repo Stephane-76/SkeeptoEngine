@@ -41,7 +41,7 @@ ss.NewWorkBook("demo");
 ss.Value("A1", "10", "Sheet1");
 ss.Value("A2", "20", "Sheet1");
 ss.Value("B1", "=SUM(A1:A2)", "Sheet1");
-ss.GetValue("B1", "Sheet1");   // "30"
+let B1=ss.GetValue("B1", "Sheet1");   // "30"
 ```
 
 C++ uses the same idea through `tApi` (`CellValue`, sheets, named ranges,
