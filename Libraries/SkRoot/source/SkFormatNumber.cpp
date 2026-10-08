@@ -953,7 +953,18 @@ static tString ApplyLocaleSeparatorsToFormattedNumber(const tString& usFormatted
             if (isAtEnd) {
                 result = result + " " + m_CurrencySymbol;
             } else {
-                result = m_CurrencySymbol + result;
+                // "$ #,##0.00" / "£ #,##0.00" keep the space after the symbol.
+                tBool wSpaceAfter = false;
+                if (formatTrimmed.size() > m_CurrencySymbol.size() &&
+                    formatTrimmed.compare(0, m_CurrencySymbol.size(), m_CurrencySymbol) == 0 &&
+                    formatTrimmed[m_CurrencySymbol.size()] == ' ') {
+                    wSpaceAfter = true;
+                }
+                if (wSpaceAfter) {
+                    result = m_CurrencySymbol + " " + result;
+                } else {
+                    result = m_CurrencySymbol + result;
+                }
             }
         }
         

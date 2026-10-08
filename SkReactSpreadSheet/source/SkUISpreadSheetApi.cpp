@@ -1112,8 +1112,28 @@ void tUISpreadSheet::_OnCellChange(tCell* sCell,tVariant& sValue) {
         } else if (wModelValueType == tVariantType::t_date) {
             // Same load path as tVariant::Json case t_date: UsDate(v) → SetDate (tVariantType::t_date).
             auto wTryUsDate = [&](tString sCandidate) -> tBool {
+                // Reject text that is not MM-DD-YYYY. UsDate() otherwise keeps 1900-01-01.
+                const tSize wDash1 = sCandidate.find('-');
+                if (wDash1 == tString::npos || wDash1 == 0) {
+                    return(false);
+                }
+                const tSize wDash2 = sCandidate.find('-', wDash1 + 1);
+                if (wDash2 == tString::npos || wDash2 + 1 >= sCandidate.size()) {
+                    return(false);
+                }
+                if (sCandidate.find('-', wDash2 + 1) != tString::npos) {
+                    return(false);
+                }
                 tClassDate wUsDate;
                 wUsDate.UsDate(sCandidate);
+                tString wRoundTrip = wUsDate.UsDate();
+                const tSize wSpace = wRoundTrip.find(' ');
+                if (wSpace != tString::npos) {
+                    wRoundTrip = wRoundTrip.substr(0, wSpace);
+                }
+                if (wRoundTrip != sCandidate) {
+                    return(false);
+                }
                 tInt wYear = 0;
                 tInt wMonth = 0;
                 tInt wDay = 0;

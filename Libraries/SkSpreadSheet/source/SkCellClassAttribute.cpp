@@ -27,8 +27,31 @@ namespace SkSpreadSheet {
             }
 
             auto wTryUsDate = [&](tString sCandidate) -> tBool {
+                // UsDate() leaves 1900-01-01 when the text is not MM-DD-YYYY.
+                // That default still passes a year/month/day check, so "ALLEZ" was stored as 01-01-1900.
+                const tSize wSpace = sCandidate.find(' ');
+                const tString wDate = (wSpace == tString::npos) ? sCandidate : sCandidate.substr(0, wSpace);
+                const tSize wDash1 = wDate.find('-');
+                if (wDash1 == tString::npos || wDash1 == 0) {
+                    return(false);
+                }
+                const tSize wDash2 = wDate.find('-', wDash1 + 1);
+                if (wDash2 == tString::npos || wDash2 + 1 >= wDate.size()) {
+                    return(false);
+                }
+                if (wDate.find('-', wDash2 + 1) != tString::npos) {
+                    return(false);
+                }
                 tClassDate wUsDate;
                 wUsDate.UsDate(sCandidate);
+                tString wRoundTrip = wUsDate.UsDate();
+                const tSize wRoundSpace = wRoundTrip.find(' ');
+                if (wRoundSpace != tString::npos) {
+                    wRoundTrip = wRoundTrip.substr(0, wRoundSpace);
+                }
+                if (wRoundTrip != wDate) {
+                    return(false);
+                }
                 tInt wYear = 0;
                 tInt wMonth = 0;
                 tInt wDay = 0;
@@ -318,14 +341,29 @@ namespace SkSpreadSheet {
 
     tBool tCellClassAttribute::IsCalculationPropagation() const { return(false); };
 
-    static tBool IsComboBoxStringCalculableClass(const tCellClassAttribute* sAttr) {
-        return sAttr != nullptr && sAttr->ClassName() == "SkCellClassComboBox";
+    // Scalar type is the model property "value". No class name is compared.
+    static tVariantType CalculableModelValueType(tCellClassAttribute* sAttr) {
+        if (sAttr == nullptr) {
+            return(tVariantType::t_null);
+        }
+        tModelClass* wModel = sAttr->ModelClass();
+        if (wModel == nullptr) {
+            wModel = tClassFactory::Instance()->Get(sAttr->ClassName());
+        }
+        if (wModel == nullptr) {
+            return(tVariantType::t_null);
+        }
+        tModelProperty* wProp = wModel->Property("value");
+        if (wProp == nullptr) {
+            return(tVariantType::t_null);
+        }
+        return(wProp->Type());
     }
 
     tVariant& tCellClassAttribute::CalculableValue() {
         tVariant* wValue = Value();
-        // ComboBox labels must stay t_string for formulas (=G6), never auto-coerce to t_date.
-        if (!IsComboBoxStringCalculableClass(this)
+        // A string model value stays t_string. Other strings may still be dates.
+        if (CalculableModelValueType(this) != tVariantType::t_string
             && wValue->Type() == tVariantType::t_string
             && !wValue->String().empty()) {
             tVariant wCoerced;
@@ -342,7 +380,7 @@ namespace SkSpreadSheet {
     }
 
     void tCellClassAttribute::SetCalculableValue(const tVariant& sValue) {
-        if (IsComboBoxStringCalculableClass(this)) {
+        if (CalculableModelValueType(this) == tVariantType::t_string) {
             tVariant wStringValue;
             if (sValue.Type() == tVariantType::t_string) {
                 wStringValue.SetString(sValue.String());
