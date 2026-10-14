@@ -63,13 +63,18 @@ elseif(EXISTS "${SK_THIRD_PARTY}/libzip/windows-install/include/zip.h")
 	# Windows: third-party/libzip/compilWindows.cmd
 	set(SK_LIBZIP "${SK_THIRD_PARTY}/libzip/windows-install")
 	set(SK_ZLIB "${SK_THIRD_PARTY}/libzip/zlib-install")
-elseif(EXISTS "/opt/homebrew/opt/libzip")
+elseif(EXISTS "/opt/homebrew/opt/libzip/include/zip.h")
     # macOS with Homebrew
     set(SK_LIBZIP "/opt/homebrew/opt/libzip")
+elseif(EXISTS "/usr/local/opt/libzip/include/zip.h")
+    set(SK_LIBZIP "/usr/local/opt/libzip")
+elseif(EXISTS "${SK_THIRD_PARTY}/libzip/host-install/include/zip.h")
+	# Superbuild static libzip (no Homebrew). Not wasm-install and not the deps tree.
+	set(SK_LIBZIP "${SK_THIRD_PARTY}/libzip/host-install")
 elseif(EXISTS "/usr/lib/x86_64-linux-gnu/libzip.a" OR EXISTS "/usr/lib/libzip.so")
     # Linux (Docker/Ubuntu) - libzip is in system paths
     set(SK_LIBZIP "/usr")
-elseif(EXISTS "${SK_THIRD_PARTY}/libzip")
+elseif(EXISTS "${SK_THIRD_PARTY}/libzip/include/zip.h")
 	set(SK_LIBZIP "${SK_THIRD_PARTY}/libzip")
 else()
     # Try to find libzip via pkg-config
@@ -314,12 +319,25 @@ elseif(${SK_PLATFORM} STREQUAL unix)
 		${PUGIXML_LIB}
 	)
 elseif(${SK_PLATFORM} STREQUAL xcode)
-	set(PROJECT_LIBRARY 
+	if(EXISTS "${SK_LIBZIP}/lib/libzip.a")
+		set(_SK_LIBZIP_LINK "${SK_LIBZIP}/lib/libzip.a")
+	else()
+		set(_SK_LIBZIP_LINK "${SK_LIBZIP}/lib/libzip.dylib")
+	endif()
+	if(EXISTS "/opt/homebrew/lib/libpugixml.a")
+		set(_SK_PUGIXML_LINK "/opt/homebrew/lib/libpugixml.a")
+	elseif(EXISTS "/usr/local/lib/libpugixml.a")
+		set(_SK_PUGIXML_LINK "/usr/local/lib/libpugixml.a")
+	else()
+		set(_SK_PUGIXML_LINK "${SK_THIRD_PARTY}/pugixml/build/libpugixml.a")
+	endif()
+	set(PROJECT_LIBRARY
 		debug ${SK_SEARCH_LIB}/Debug/libSkRoot.a optimized  ${SK_SEARCH_LIB}/Release/libSkRoot.a
 		debug ${SK_SEARCH_LIB}/Debug/libSkSpreadSheet.a optimized  ${SK_SEARCH_LIB}/Release/libSkSpreadSheet.a
 		debug ${SK_SEARCH_LIB}/Debug/libSkFormat.a optimized  ${SK_SEARCH_LIB}/Release/libSkFormat.a
-		debug ${SK_LIBZIP}/lib/libzip.dylib optimized ${SK_LIBZIP}/lib/libzip.dylib 
-		/opt/homebrew/lib/libpugixml.a
+		${_SK_LIBZIP_LINK}
+		${_SK_PUGIXML_LINK}
+		z
 	)
 else()
 	# For pugixml in other platforms

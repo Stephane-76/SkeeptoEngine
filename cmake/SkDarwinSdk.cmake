@@ -27,11 +27,18 @@ if(NOT _SK_OSX_SDK_RC EQUAL 0 OR _SK_OSX_SDK STREQUAL "" OR NOT EXISTS "${_SK_OS
 	return()
 endif()
 
+# Refresh when the cached SDK disappears OR when xcode-select moved
+# (Command Line Tools vs Xcode.app). Both trees can exist at once; the
+# compiler must use the SDK that xcrun reports for the active developer dir.
 set(_SK_NEED_SDK FALSE)
-if(NOT CMAKE_OSX_SYSROOT)
+if(NOT CMAKE_OSX_SYSROOT OR NOT EXISTS "${CMAKE_OSX_SYSROOT}")
 	set(_SK_NEED_SDK TRUE)
-elseif(NOT EXISTS "${CMAKE_OSX_SYSROOT}")
-	set(_SK_NEED_SDK TRUE)
+else()
+	get_filename_component(_sk_have_sdk "${CMAKE_OSX_SYSROOT}" REALPATH)
+	get_filename_component(_sk_want_sdk "${_SK_OSX_SDK}" REALPATH)
+	if(NOT _sk_have_sdk STREQUAL _sk_want_sdk)
+		set(_SK_NEED_SDK TRUE)
+	endif()
 endif()
 
 if(_SK_NEED_SDK)

@@ -318,12 +318,15 @@ if(SK_BUILD_APPS)
 	endif()
 endif()
 
-# --- zlib + libzip (SkExcel wasm + windows; mac/linux use Homebrew/system) --
+# --- zlib + libzip (SkExcel wasm + windows). mac/linux: Homebrew, else host-install below. --
 if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "wasm" OR SK_PLATFORM STREQUAL "windows"))
 	if(SK_PLATFORM STREQUAL "wasm")
 		set(_libzip_prefix "${SK_TP}/libzip/wasm-install")
 		set(_zlib_prefix "${SK_TP}/libzip/zlib-install")
 		set(_libzip_art "${_libzip_prefix}/lib/libzip.a")
+		# Emscripten sets CMAKE_FIND_ROOT_PATH_MODE_* to ONLY, so find_package(ZLIB)
+		# never sees ZLIB_ROOT. Point libzip at the static archive directly.
+		set(_zlib_lib "${_zlib_prefix}/lib/libz.a")
 	else()
 		set(_libzip_prefix "${SK_TP}/libzip/windows-install")
 		set(_zlib_prefix "${SK_TP}/libzip/zlib-install")
@@ -331,6 +334,7 @@ if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "wasm" OR SK_PLATFORM STREQUAL "windo
 		if(NOT EXISTS "${_libzip_art}")
 			set(_libzip_art "${_libzip_prefix}/lib/libzip.lib")
 		endif()
+		set(_zlib_lib "${_zlib_prefix}/lib/zlibstatic.lib")
 	endif()
 
 	set(SK_TP_NEED_BUILD FALSE)
@@ -367,7 +371,12 @@ if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "wasm" OR SK_PLATFORM STREQUAL "windo
 			-DENABLE_BZIP2=OFF
 			-DENABLE_LZMA=OFF
 			-DENABLE_ZSTD=OFF
+			-DCMAKE_POLICY_DEFAULT_CMP0074=NEW
+			-DZLIB_USE_STATIC_LIBS=ON
 			-DZLIB_ROOT=${_zlib_prefix}
+			-DZLIB_INCLUDE_DIR=${_zlib_prefix}/include
+			-DZLIB_LIBRARY=${_zlib_lib}
+			-DZLIB_LIBRARY_RELEASE=${_zlib_lib}
 		)
 		if(SK_PLATFORM STREQUAL "wasm")
 			list(APPEND _z_args
@@ -440,6 +449,83 @@ if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "wasm" OR SK_PLATFORM STREQUAL "windo
 		)
 	endif()
 	list(APPEND SK_TP_EXCEL_DEPS libzip_tp)
+endif()
+
+# macOS / Linux: Homebrew or the distro package when present. Otherwise build a
+# static libzip against the system zlib into third-party/libzip/host-install.
+# Unix Makefiles (not the Xcode generator) so the archive is lib/libzip.a.
+if(SK_BUILD_APPS AND (SK_PLATFORM STREQUAL "xcode" OR SK_PLATFORM STREQUAL "unix"))
+	set(_sk_have_sys_libzip FALSE)
+	if(EXISTS "/opt/homebrew/opt/libzip/include/zip.h" OR EXISTS "/usr/local/opt/libzip/include/zip.h")
+		set(_sk_have_sys_libzip TRUE)
+	endif()
+	if(EXISTS "/usr/lib/x86_64-linux-gnu/libzip.so" OR EXISTS "/usr/lib/libzip.so" OR EXISTS "/usr/lib/libzip.a")
+		set(_sk_have_sys_libzip TRUE)
+	endif()
+	if(NOT _sk_have_sys_libzip)
+		set(_libzip_prefix "${SK_TP}/libzip/host-install")
+		set(_libzip_art "${_libzip_prefix}/lib/libzip.a")
+		set(SK_TP_NEED_BUILD FALSE)
+		sk_tp_already_or_build(libzip_tp "${_libzip_art}")
+		if(SK_TP_NEED_BUILD)
+			file(MAKE_DIRECTORY "${SK_TP}/libzip/deps")
+			set(_libzip_src "${SK_TP}/libzip/deps/libzip-${SK_LIBZIP_VERSION}")
+			if(EXISTS "${SK_TP}/libzip/CMakeLists.txt")
+				set(_libzip_src "${SK_TP}/libzip")
+			endif()
+			set(_z_args_libzip
+				-DCMAKE_INSTALL_PREFIX=${_libzip_prefix}
+				-DCMAKE_INSTALL_LIBDIR=lib
+				-DCMAKE_BUILD_TYPE=Release
+				-DCMAKE_POLICY_VERSION_MINIMUM=3.5
+				-DBUILD_SHARED_LIBS=OFF
+				-DBUILD_TOOLS=OFF
+				-DBUILD_EXAMPLES=OFF
+				-DBUILD_DOC=OFF
+				-DBUILD_REGRESS=OFF
+				-DBUILD_OSSFUZZ=OFF
+				-DENABLE_OPENSSL=OFF
+				-DENABLE_COMMONCRYPTO=OFF
+				-DENABLE_GNUTLS=OFF
+				-DENABLE_MBEDTLS=OFF
+				-DENABLE_WINDOWS_CRYPTO=OFF
+				-DENABLE_BZIP2=OFF
+				-DENABLE_LZMA=OFF
+				-DENABLE_ZSTD=OFF
+			)
+			if(APPLE)
+				list(APPEND _z_args_libzip -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0)
+			endif()
+			if(SK_CHILD_MAKE_PROGRAM)
+				list(APPEND _z_args_libzip -DCMAKE_MAKE_PROGRAM=${SK_CHILD_MAKE_PROGRAM})
+			endif()
+			sk_reset_stale_cmake_cache("${CMAKE_BINARY_DIR}/tp/libzip" "${_libzip_src}")
+			set(_libzip_download DOWNLOAD_COMMAND "")
+			if(NOT EXISTS "${_libzip_src}/CMakeLists.txt")
+				set(_libzip_download
+					URL "https://github.com/nih-at/libzip/releases/download/v${SK_LIBZIP_VERSION}/libzip-${SK_LIBZIP_VERSION}.tar.gz"
+					DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+				)
+			endif()
+			ExternalProject_Add(libzip_tp
+				${_libzip_download}
+				SOURCE_DIR "${_libzip_src}"
+				BINARY_DIR "${CMAKE_BINARY_DIR}/tp/libzip"
+				PREFIX "${CMAKE_BINARY_DIR}/ep/libzip_tp"
+				UPDATE_COMMAND ""
+				CMAKE_GENERATOR "Unix Makefiles"
+				CMAKE_ARGS ${_z_args_libzip}
+				BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --parallel
+				INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR>
+				USES_TERMINAL_DOWNLOAD TRUE
+				USES_TERMINAL_CONFIGURE TRUE
+				USES_TERMINAL_BUILD TRUE
+				USES_TERMINAL_INSTALL TRUE
+				LOG_OUTPUT_ON_FAILURE TRUE
+			)
+		endif()
+		list(APPEND SK_TP_EXCEL_DEPS libzip_tp)
+	endif()
 endif()
 
 message(STATUS "third-party test deps: ${SK_TP_TEST_DEPS}")
